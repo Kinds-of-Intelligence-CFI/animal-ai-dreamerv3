@@ -1,0 +1,21 @@
+# This setup is tested with NIVIDIA Driver Version: 530.41.03
+# (and CUDA Version: 12.1, but that should be overridden by jax install)
+name: dreamer-object-permanence
+channels:
+  # Order is important <https://github.com/google/jax#conda-installation>
+  - default # We add this ourselves, cause we don't want Python/pip from forge (it crashes dreamerv3 installation).
+  - conda-forge
+  - nvidia
+dependencies:
+  - python=3.10
+  - pip
+
+  # Install JAX with GPU support first
+  # <https://github.com/google/jax#conda-installation>
+  - jaxlib=*=*cuda*
+  - jax
+  - cuda-nvcc
+
+  # ... and the rest
+  - pip:
+      - dreamerv3
