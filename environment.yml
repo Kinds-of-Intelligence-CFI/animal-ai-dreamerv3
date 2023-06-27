@@ -19,3 +19,8 @@ dependencies:
   # ... and the rest
   - pip:
       - dreamerv3
+      - animalai
+
+  # For default (higher) version, we get an error coming from ml-agents
+  # This is the recommended approach from protobuf
+  # - protobuf=3.20
