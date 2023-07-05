@@ -1,4 +1,7 @@
 .env
 logdir/*
-aai/env/*
-!aai/env/.gitkeep
+aai/env3.0.1/*
+aai/env3.0.2/*
+!aai/env*/.gitkeep
+
+__pycache__/

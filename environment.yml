@@ -1,3 +1,30 @@
+# -----------------------------
+# Important version constraints
+# -----------------------------
+
+# animalai v3.0.2 requires mlagents 0.30.0
+#     <https://github.com/Kinds-of-Intelligence-CFI/animal-ai>
+# animalai v3.0.1 requires mlagents 0.27.0
+#     <https://github.com/Kinds-of-Intelligence-CFI/animal-ai>
+#     (Release 18 <https://github.com/Unity-Technologies/ml-agents/releases/tag/release_18>)
+# dreamerv3 1.1.0 requires gym==0.19.0
+#     <https://github.com/danijar/dreamerv3/blob/main/requirements.txt>
+# mlagents-envs 0.30.0 requires gym>=0.21.0
+#     <https://github.com/Unity-Technologies/ml-agents/blob/3fd3fdf1570b58109f5ad883b364b3526bc68ad7/ml-agents-envs/setup.py#L57>
+#     ==> thus also mlagents 0.30.0, thus also animalai (GH) v3.0.2
+# mlagents 0.30.0 requires Python >=3.8.13,<=3.10.8
+#    <https://github.com/Unity-Technologies/ml-agents/blob/89a6357016f4bd685bb0004f83a3a1c2b27a0e05/ml-agents/setup.py>
+# mlagents 0.27.0 requires Python >=3.6.1, but smaller than?
+#    <https://github.com/Unity-Technologies/ml-agents/blob/c1b26d49e4f4fc692c2688531f9e7c69dba12682/ml-agents/setup.py>
+# jax 0.4.14 requires Python > 3.8
+#    <https://github.com/google/jax/blob/main/CHANGELOG.md>
+# jax 0.4.14 requires numpy > 1.22
+#    <https://github.com/google/jax/blob/main/CHANGELOG.md>
+#
+# Question, does ml-agents=0.27.0 work with python 3.10.8?
+#     Initially there were issues with torch install
+#     => We got with python=3.9 instead
+
 # This setup is tested with NIVIDIA Driver Version: 530.41.03
 # (and CUDA Version: 12.1, but that should be overridden by jax install)
 name: dreamer-object-permanence
@@ -7,7 +34,8 @@ channels:
   - conda-forge
   - nvidia
 dependencies:
-  - python=3.10
+  # - python=3.10.8
+  - python=3.9
   - pip
 
   # Note: The config errored (for some fucking reason) on another machine, even with identical pip and setuptools versions etc.
@@ -24,9 +52,22 @@ dependencies:
   # ... and the rest
   - pip:
       - dreamerv3
-      - animalai
 
+      # The PyPI animalai package (https://pypi.org/project/animalai/) is outdated
+      # and not maintained by LCFI/KoI anymore. The updated version comes from the
+      # <https://github.com/Kinds-of-Intelligence-CFI/animal-ai> repo.
+      #
+      # However, we need an older version anyway (animalai <= 3.0.1), and the latest commit
+      # I could not needing mlagents==0.30.0 is <https://github.com/Kinds-of-Intelligence-CFI/animal-ai/commit/225c907a06286c65b416d93ecf9a5fb2fde1e819>
+      # See top of the file to see why we can't use mlagents==0.30.0.
+      # Below is the conda alternative for `pip install ...`
+      - "git+https://github.com/Kinds-of-Intelligence-CFI/animal-ai.git@225c907a06286c65b416d93ecf9a5fb2fde1e819#egg=animalai&subdirectory=animalai"
+      # - mlagents==0.27.0 (implied by dependency above)
+
+      # Better don't do this (this is the outdated PyPI package)
+      # - animalai
+
+  # NOTE: Solved (or avoided) by setting PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
   # For default (higher) version, we get an error coming from ml-agents
   # This is the recommended approach from protobuf
   # - protobuf=3.20
-  # NOTE: Solved (or avoided) by setting PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python

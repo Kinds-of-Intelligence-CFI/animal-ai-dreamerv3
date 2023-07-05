@@ -2,6 +2,9 @@ import sys
 import random
 import os
 
+print(sys.path)
+
+import animalai
 from animalai.envs.environment import AnimalAIEnvironment
 
 def load_config_and_play(configuration_file: str) -> None:
@@ -10,7 +13,8 @@ def load_config_and_play(configuration_file: str) -> None:
     :param configuration_file: str path to the yaml configuration
     :return: None
     """
-    env_path = "./aai/env/AAI3Linux.x86_64" # TODO
+    # env_path = "./aai/env/AAI3Linux.x86_64" # TODO
+    env_path = "./aai/env3.0.1/AAI_v3.0.1_build_linux_090422.x86_64"
     port = 5005 + random.randint(
         0, 1000
     )  # use a random port to avoid problems if a previous version exits slowly
