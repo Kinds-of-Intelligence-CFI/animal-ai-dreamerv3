@@ -58,11 +58,17 @@ dependencies:
       # <https://github.com/Kinds-of-Intelligence-CFI/animal-ai> repo.
       #
       # However, we need an older version anyway (animalai <= 3.0.1), and the latest commit
-      # I could not needing mlagents==0.30.0 is <https://github.com/Kinds-of-Intelligence-CFI/animal-ai/commit/225c907a06286c65b416d93ecf9a5fb2fde1e819>
+      # I could find that does not need mlagents==0.30.0 is <https://github.com/Kinds-of-Intelligence-CFI/animal-ai/commit/5386a625dcd160b017e1be48c88897aa9fb20b3b>
       # See top of the file to see why we can't use mlagents==0.30.0.
       # Below is the conda alternative for `pip install ...`
-      - "git+https://github.com/Kinds-of-Intelligence-CFI/animal-ai.git@225c907a06286c65b416d93ecf9a5fb2fde1e819#egg=animalai&subdirectory=animalai"
+      # - "git+https://github.com/Kinds-of-Intelligence-CFI/animal-ai.git@5386a625dcd160b017e1be48c88897aa9fb20b3b#egg=animalai&subdirectory=animalai"
       # - mlagents==0.27.0 (implied by dependency above)
+
+      # However, ... this commit has an issue with the build, where the folder
+      # structure is missing an __init__, causing the eggs/wheels to be empty.
+      # We fix it by just copying the source at that point, and modifying it ourselves.
+      # That source is commmitted in the repo.
+      - "aai/animal-ai-5386a625dcd160b017e1be48c88897aa9fb20b3b/animalai/"
 
       # Better don't do this (this is the outdated PyPI package)
       # - animalai
