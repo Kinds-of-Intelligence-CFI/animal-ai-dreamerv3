@@ -10,6 +10,11 @@ dependencies:
   - python=3.10
   - pip
 
+  # Note: The config errored (for some fucking reason) on another machine, even with identical pip and setuptools versions etc.
+  # Pinning this fixes the build of gym=0.19.0 (required by dreamerv3)
+  - setuptools=65.5.0
+  - wheel=0.38.4
+
   # Install JAX with GPU support first
   # <https://github.com/google/jax#conda-installation>
   - jaxlib=*=*cuda*
@@ -24,3 +29,4 @@ dependencies:
   # For default (higher) version, we get an error coming from ml-agents
   # This is the recommended approach from protobuf
   # - protobuf=3.20
+  # NOTE: Solved (or avoided) by setting PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python

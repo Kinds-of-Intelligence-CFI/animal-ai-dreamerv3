@@ -10,7 +10,7 @@ def load_config_and_play(configuration_file: str) -> None:
     :param configuration_file: str path to the yaml configuration
     :return: None
     """
-    env_path = "./aai/env/AnimalAI" # TODO
+    env_path = "./aai/env/AAI3Linux.x86_64" # TODO
     port = 5005 + random.randint(
         0, 1000
     )  # use a random port to avoid problems if a previous version exits slowly

@@ -1,3 +1,4 @@
 .env
+logdir/*
 aai/env/*
 !aai/env/.gitkeep
