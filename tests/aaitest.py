@@ -2,9 +2,8 @@ import sys
 import random
 import os
 
-print(sys.path)
+os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 
-import animalai
 from animalai.envs.environment import AnimalAIEnvironment
 
 def load_config_and_play(configuration_file: str) -> None:
