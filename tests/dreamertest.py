@@ -8,7 +8,7 @@ def main():
     config = embodied.Config(dreamerv3.configs['defaults'])
     config = config.update(dreamerv3.configs['medium'])
     config = config.update({
-        'logdir': './logdir/run1',
+        'logdir': './logdir/crafter1',
         'run.train_ratio': 64,
         'run.log_every': 30,  # Seconds
         'batch_size': 16,
@@ -17,7 +17,7 @@ def main():
         'decoder.mlp_keys': '$^',
         'encoder.cnn_keys': 'image',
         'decoder.cnn_keys': 'image',
-      #   'jax.platform': 'cpu',
+        #   'jax.platform': 'cpu',
     })
     config = embodied.Flags(config).parse()
 
@@ -32,8 +32,10 @@ def main():
     ])
 
     import crafter
-    from embodied.envs import from_gym # type: ignore
+    from dreamerv3.embodied.envs import from_gym
+    from gym.wrappers.compatibility import EnvCompatibility
     env = crafter.Env()  # Replace this with your Gym env.
+    env = EnvCompatibility(env, render_mode='rgb_array')
     env = from_gym.FromGym(env, obs_key='image')  # Or obs_key='vector'.
     env = dreamerv3.wrap_env(env, config)
     env = embodied.BatchEnv([env], parallel=False)
@@ -43,7 +45,7 @@ def main():
         config.batch_length, config.replay_size, logdir / 'replay')
     args = embodied.Config(
         **config.run, logdir=config.logdir,
-        batch_steps=config.batch_size * config.batch_length) # type: ignore
+        batch_steps=config.batch_size * config.batch_length)  # type: ignore
     embodied.run.train(agent, env, replay, logger, args)
     # embodied.run.eval_only(agent, env, logger, args)
 

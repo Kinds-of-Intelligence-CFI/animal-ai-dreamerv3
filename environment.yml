@@ -7,14 +7,14 @@ channels:
   - conda-forge
   - nvidia
 dependencies:
-  # - python=3.10.8
-  - python=3.9
+  - python=3.10.8
+  # - python=3.9
   - pip
 
   # Note: The config errored (for some fucking reason) on another machine, even with identical pip and setuptools versions etc.
   # Pinning this fixes the build of gym=0.19.0 (required by dreamerv3)
-  - setuptools=65.5.0
-  - wheel=0.38.4
+  # - setuptools=65.5.0
+  # - wheel=0.38.4
 
   # Install JAX with GPU support first
   # <https://github.com/google/jax#conda-installation>
@@ -24,29 +24,17 @@ dependencies:
 
   # ... and the rest
   - pip:
-      - gym==0.19.0 # Pin manually for certainty
-      - dreamerv3
-      - gym-unity
+      - gym==0.26.2 # Explicit pin for clarity
+      # - dreamerv3 # Requires gym==0.19.0
+      - "git+https://github.com/Kinds-of-Intelligence-CFI/dreamerv3-compat.git#egg=dreamerv3"
 
       # The PyPI animalai package (https://pypi.org/project/animalai/) is outdated
       # and not maintained by LCFI/KoI anymore. The updated version comes from the
       # <https://github.com/Kinds-of-Intelligence-CFI/animal-ai> repo.
-      #
-      # However, we need an older version anyway (animalai <= 3.0.1), and the latest commit
-      # I could find that does not need mlagents==0.30.0 is <https://github.com/Kinds-of-Intelligence-CFI/animal-ai/commit/5386a625dcd160b017e1be48c88897aa9fb20b3b>
-      # See bottom of the file to see why we can't use mlagents==0.30.0.
+      # We take the hash of the currently latest commit.
       # Below is the conda alternative for `pip install ...`
-      # - "git+https://github.com/Kinds-of-Intelligence-CFI/animal-ai.git@5386a625dcd160b017e1be48c88897aa9fb20b3b#egg=animalai&subdirectory=animalai"
-      # - mlagents==0.27.0 (implied by dependency above)
-
-      # However, ... this commit has an issue with the build, where the folder
-      # structure is missing an __init__, causing the eggs/wheels to be empty.
-      # We fix it by just copying the source at that point, and modifying it ourselves.
-      # That source is commmitted in the repo.
-      - "aai/animal-ai-5386a625dcd160b017e1be48c88897aa9fb20b3b/animalai/"
-
-      # Better don't do this (this is the outdated PyPI package)
-      # - animalai
+      - "git+https://github.com/Kinds-of-Intelligence-CFI/animal-ai.git@507994582e81cbe019c12843837f1341473f67f7#egg=animalai&subdirectory=animalai"
+      # - mlagents==0.30.0 (implied by dependency above)
 
   # Dev
   - mypy
