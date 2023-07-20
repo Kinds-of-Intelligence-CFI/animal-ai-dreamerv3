@@ -1,4 +1,4 @@
-.env
+.venv
 logdir/*
 aai/env3.0.1/*
 aai/env3.0.2/*

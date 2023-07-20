@@ -2,9 +2,10 @@ import sys
 import random
 import os
 
-os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
+os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"  # noqa
 
 from animalai.envs.environment import AnimalAIEnvironment
+
 
 def load_config_and_play(configuration_file: str) -> None:
     """
@@ -22,13 +23,13 @@ def load_config_and_play(configuration_file: str) -> None:
     environment = AnimalAIEnvironment(
         file_name=env_path,
         base_port=port,
-        arenas_configurations=configuration_file, # type: ignore
-        play=True,
+        arenas_configurations=configuration_file,  # type: ignore
+        # play=True,
     )
 
     # Run the environment until signal to it is lost
     try:
-        while environment._process: # type: ignore
+        while environment._process:  # type: ignore
             continue
     except KeyboardInterrupt:
         pass
@@ -47,5 +48,5 @@ if __name__ == "__main__":
         rand_idx = random.randint(0, len(config_files) - 1)
         config = config_folder + config_files[rand_idx]
         print(F"Using configuration file {config}")
-    
+
     load_config_and_play(configuration_file=config)

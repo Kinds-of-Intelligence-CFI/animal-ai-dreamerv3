@@ -24,7 +24,9 @@ dependencies:
 
   # ... and the rest
   - pip:
+      - gym==0.19.0 # Pin manually for certainty
       - dreamerv3
+      - gym-unity
 
       # The PyPI animalai package (https://pypi.org/project/animalai/) is outdated
       # and not maintained by LCFI/KoI anymore. The updated version comes from the
@@ -45,6 +47,10 @@ dependencies:
 
       # Better don't do this (this is the outdated PyPI package)
       # - animalai
+
+  # Dev
+  - mypy
+  - autopep8
 #
 #
 # -----------------------------
@@ -75,6 +81,9 @@ dependencies:
 #    1. Downgrade the proto package to 3.20.x or lower. (not compatible with decent jax versions)
 #    2. Set PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python (but this will use pure-Python parsing and will be much slower).
 #    -> the option we choose
+# mlagents-envs 0.27.0 requries numpy < 1.20
+#    Uses numpy.bool, which was deprecated in https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
+#    Latest jax that allows a numpy < 1.20 is XXX with numpy>=1.19
 #
 # Question, does ml-agents=0.27.0 work with python 3.10.8?
 #     Initially there were issues with torch install
