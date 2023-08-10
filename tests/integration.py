@@ -1,9 +1,10 @@
-
 import os
 # Make sure this is above the import of AnimalAIEnvironment
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"  # noqa
 
+from pathlib import Path
 import logging
+from datetime import datetime
 logging.basicConfig(  # noqa
     # format='[%(asctime)s] [%(levelname)-8s] [%(pathname)s] %(message)s',
     format='[%(asctime)s] [%(levelname)-8s] [%(module)s] %(message)s',
@@ -21,12 +22,12 @@ from mlagents_envs.envs.unity_gym_env import UnityToGymWrapper
 from animalai.envs.environment import AnimalAIEnvironment
 
 
-def get_dreamer_config():
+def get_dreamer_config(run_logdir):
     # See configs.yaml for all options.
     config = embodied.Config(dreamerv3.configs['defaults'])
     config = config.update(dreamerv3.configs['medium'])
     config = config.update({
-        'logdir': './logdir/run1',
+        'logdir': run_logdir,
         'run.train_ratio': 64,
         'run.log_every': 30,  # Seconds
         'batch_size': 16,
@@ -53,11 +54,12 @@ def get_dreamer_config():
     return config, step, logger, logdir
 
 
-def aai_env(task_path, dreamer_config):
+def aai_env(task_path, dreamer_config, logdir):
     # use a random port to avoid problems if a previous version exits slowly
     port = 5005 + random.randint(0, 1000)
 
-    env_path = "./aai/env3.0.1/AAI_v3.0.1_build_linux_090422.x86_64"
+    # env_path = "./aai/env3.0.1/AAI_v3.0.1_build_linux_090422.x86_64"
+    env_path = "./aai/env3.0.2/AAI3Linux.x86_64"
 
     logging.info("Initializing AAI environment")
     aai_env = AnimalAIEnvironment(
@@ -66,7 +68,8 @@ def aai_env(task_path, dreamer_config):
         arenas_configurations=task_path,
         # Set pixels to 64x64 cause it has to be power of 2 for dreamerv3
         resolution=64,
-        # play=True,
+        # no_graphics=True, # If enable, also enable log_folder to prevent terminal spammed by "No graphics device" logs from Unity
+        # log_folder=logdir,
     )
     logging.info("Applying UnityToGymWrapper")
     env = UnityToGymWrapper(
@@ -93,10 +96,13 @@ def aai_env(task_path, dreamer_config):
 def main():
     task_config = "./aai/configs/OP-Controls-RandBasic-SanityGreen-RND-RND-NA-RND-NA.yml"
 
+    date = datetime.now().strftime("%Y_%m_%d_%H_%M")
+    logdir = Path("./logdir/") / f'integration-test-{date}'
+
     logging.info("Creating DreamerV3 config")
-    dreamer_config, step, logger, logdir = get_dreamer_config()
+    dreamer_config, step, logger, logdir = get_dreamer_config(logdir)
     logging.info(f"Creating AAI Dreamer Environment")
-    env = aai_env(task_config, dreamer_config)
+    env = aai_env(task_config, dreamer_config, logdir)
 
     logging.info("Creating DreamerV3 Agent")
     agent = dreamerv3.Agent(env.obs_space, env.act_space, step, dreamer_config)
