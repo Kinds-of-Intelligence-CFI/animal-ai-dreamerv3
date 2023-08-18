@@ -68,7 +68,9 @@ def aai_env(task_path, dreamer_config, logdir):
         arenas_configurations=task_path,
         # Set pixels to 64x64 cause it has to be power of 2 for dreamerv3
         resolution=64,
-        # no_graphics=True, # If enable, also enable log_folder to prevent terminal spammed by "No graphics device" logs from Unity
+        # Don't enable when using visual observations, as they will be all gray. Maybe okay when raycasting.
+        # If enable, also enable log_folder to prevent terminal spammed by "No graphics device" logs from Unity
+        # no_graphics=True, 
         # log_folder=logdir,
     )
     logging.info("Applying UnityToGymWrapper")

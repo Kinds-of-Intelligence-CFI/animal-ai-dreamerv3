@@ -1,7 +1,15 @@
-.venv
-logdir/*
+
+# Ignore all log files
+logdir/**/*.* 
+# Except metrics.jsonl and train configs in train logs
+!logdir/training-*/metrics.jsonl 
+!logdir/training-*/*.yml
+
+aai/configs-private/*
+!aai/configs-private/.gitkeep
 aai/env3.0.1/*
 aai/env3.0.2/*
 !aai/env*/.gitkeep
 
+.venv
 __pycache__/
