@@ -1,6 +1,8 @@
 import os
 # Make sure this is above the import of AnimalAIEnvironment
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"  # noqa
+os.environ['CUDA_VISIBLE_DEVICES'] = '0' # noqa
+# os.environ['CUDA_VISIBLE_DEVICES'] = '1' # noqa
 
 from pathlib import Path
 import logging
@@ -25,11 +27,11 @@ from animalai.envs.environment import AnimalAIEnvironment
 def get_dreamer_config(run_logdir):
     # See configs.yaml for all options.
     config = embodied.Config(dreamerv3.configs['defaults'])
-    config = config.update(dreamerv3.configs['medium'])
+    config = config.update(dreamerv3.configs['xlarge'])
     config = config.update({
         'logdir': run_logdir,
         'run.train_ratio': 64,
-        'run.log_every': 30,  # Seconds
+        'run.log_every': 60,  # Seconds
         'batch_size': 16,
         'jax.prealloc': False,
         'encoder.mlp_keys': '$^',
@@ -67,11 +69,7 @@ def aai_env(task_path, dreamer_config, logdir):
         base_port=port,
         arenas_configurations=task_path,
         # Set pixels to 64x64 cause it has to be power of 2 for dreamerv3
-        resolution=64,
-        # Don't enable when using visual observations, as they will be all gray. Maybe okay when raycasting.
-        # If enable, also enable log_folder to prevent terminal spammed by "No graphics device" logs from Unity
-        # no_graphics=True, 
-        # log_folder=logdir,
+        resolution=64, # same size as Minecraft in DreamerV3
     )
     logging.info("Applying UnityToGymWrapper")
     env = UnityToGymWrapper(
@@ -96,10 +94,14 @@ def aai_env(task_path, dreamer_config, logdir):
 
 
 def main():
-    task_config = "./aai/configs/OP-Controls-RandBasic-SanityGreen-RND-RND-NA-RND-NA.yml"
+    # task_config = "./aai/configs/OP-Controls-RandBasic-SanityGreen-RND-RND-NA-RND-NA.yml"
+    # task_config = "./aai/configs/paper/SanityMovingYellowMulti10.yml"
+    # task_config = "./aai/configs/paper/SanityMovingYellow.yml"
+    task_config = "./aai/configs/paper/SanityYellowMulti10.yml"
+    task_name = Path(task_config).stem
 
     date = datetime.now().strftime("%Y_%m_%d_%H_%M")
-    logdir = Path("./logdir/") / f'integration-test-{date}'
+    logdir = Path("./logdir/") / f'training-{date}-{task_name}'
 
     logging.info("Creating DreamerV3 config")
     dreamer_config, step, logger, logdir = get_dreamer_config(logdir)
