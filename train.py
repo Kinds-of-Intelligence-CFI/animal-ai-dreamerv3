@@ -28,6 +28,7 @@ class Args:
     aai: Path
     dreamer_args: str
     # TODO: Checkpoint restart
+    # Eval mode. Load checkpoint and run eval.
 
 
 def run(args: Args):
@@ -68,7 +69,7 @@ def run(args: Args):
     logging.info("Starting training")
 
     embodied.run.train(agent, env, replay, logger, emb_config)
-    # embodied.run.eval_only(agent, env, logger, args)
+    # embodied.run.eval_only(agent, env, logger, emb_config)
 
 
 def get_dreamer_config(logdir: Path, dreamer_args: str = ''):
@@ -114,6 +115,7 @@ def get_aai_env(task_path, env_path, dreamer_config):
         # Set pixels to 64x64 cause it has to be power of 2 for dreamerv3
         resolution=64, # same size as Minecraft in DreamerV3
     )
+    logging.info("Wrapping AAI environment")
     env = UnityToGymWrapper(
         aai_env, uint8_visual=True,
         # allow_multiple_obs=True, # This crashes somewhere in one of the wrappers.
