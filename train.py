@@ -3,6 +3,7 @@ import os
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"  # noqa
 
 import random
+import shutil
 import argparse
 from pathlib import Path
 from datetime import datetime
@@ -25,17 +26,30 @@ from animalai.envs.environment import AnimalAIEnvironment
 class Args:
     task: Path
     aai: Path
+    dreamer_args: str
     # TODO: Checkpoint restart
 
 
 def run(args: Args):
     task_path = args.task
     task_name = Path(args.task).stem
+
+    # Configure logging
     date = datetime.now().strftime("%Y_%m_%d_%H_%M")
     logdir = Path("./logdir/") / f'training-{date}-{task_name}'
+    logdir.mkdir(parents=True)
+    (logdir / 'log.txt').touch()
+    handler = logging.FileHandler(logdir / 'log.txt')
+    handler.setLevel(logging.INFO)
+    handler.setFormatter(logging.Formatter('[%(asctime)s] [%(levelname)-8s] [%(module)s] %(message)s'))
+    logging.getLogger().addHandler(handler)
+    shutil.copy(task_path, logdir / task_path.name) # Copy task file to logdir for reference
+
+    logging.info(f"Args: {args}")
 
     logging.info("Creating DreamerV3 config")
-    dreamer_config, step, logger = get_dreamer_config(logdir)
+    dreamer_config, step, logger = get_dreamer_config(logdir, args.dreamer_args)
+    dreamer_config.save(logdir / 'dreamer_config.yaml')
 
     logging.info(f"Creating AAI Dreamer Environment")
     env = get_aai_env(task_path, args.aai, dreamer_config)
@@ -52,11 +66,12 @@ def run(args: Args):
         batch_steps=dreamer_config.batch_size * dreamer_config.batch_length)  # type: ignore
 
     logging.info("Starting training")
+
     embodied.run.train(agent, env, replay, logger, emb_config)
     # embodied.run.eval_only(agent, env, logger, args)
 
 
-def get_dreamer_config(logdir: Path):
+def get_dreamer_config(logdir: Path, dreamer_args: str = ''):
     # See configs.yaml for all options.
     config = embodied.Config(dreamerv3.configs['defaults'])
     config = config.update(dreamerv3.configs['xlarge'])
@@ -72,7 +87,7 @@ def get_dreamer_config(logdir: Path):
         'decoder.cnn_keys': 'image',
         #   'jax.platform': 'cpu',
     })
-    config = embodied.Flags(config).parse()
+    config = embodied.Flags(config).parse(dreamer_args)
 
     step = embodied.Counter()
 
@@ -93,7 +108,7 @@ def get_aai_env(task_path, env_path, dreamer_config):
 
     logging.info("Initializing AAI environment")
     aai_env = AnimalAIEnvironment(
-        file_name=env_path,
+        file_name=str(env_path),
         base_port=port,
         arenas_configurations=task_path,
         # Set pixels to 64x64 cause it has to be power of 2 for dreamerv3
@@ -117,6 +132,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--task', type=Path, required=True)
     parser.add_argument('--aai', type=Path, default=Path('./aai/env/AnimalAI.x86_64'))
+    parser.add_argument('--dreamer-args', type=str, default='', help='Extra args to pass to dreamerv3.')
     args_raw = parser.parse_args()
 
     args = Args(**vars(args_raw))
