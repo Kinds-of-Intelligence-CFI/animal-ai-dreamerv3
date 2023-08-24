@@ -1,6 +1,6 @@
 !ArenaConfig
 arenas:
-  -1: !Arena
+  0: !Arena
     pass_mark: 1
     t: 500
     items:
@@ -15,7 +15,7 @@ arenas:
           - !Vector3 { x: -1, y: -1, z: -1 }
         sizes:
           - !Vector3 { x: 2, y: 2, z: 2 }
-  0: !Arena
+  1: !Arena
     pass_mark: 1
     t: 500
     items:
@@ -29,4 +29,4 @@ arenas:
         positions:
           - !Vector3 { x: -1, y: -1, z: -1 }
         sizes:
-          - !Vector3 { x: 2, y: 2, z: 2 }
+          - !Vector3 { x: 4, y: 4, z: 4 }

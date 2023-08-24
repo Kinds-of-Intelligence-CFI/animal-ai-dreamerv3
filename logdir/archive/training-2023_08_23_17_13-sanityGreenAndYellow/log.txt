@@ -1,0 +1,15 @@
+[2023-08-23 17:13:39,924] [INFO    ] [train] Args: Args(task=PosixPath('aai/configs/sanityGreenAndYellow.yml'), aai=PosixPath('aai/env3.1.1/AnimalAI.x86_64'), dreamer_args='')
+[2023-08-23 17:13:39,925] [INFO    ] [train] Creating DreamerV3 config
+[2023-08-23 17:13:39,979] [INFO    ] [train] Creating AAI Dreamer Environment
+[2023-08-23 17:13:39,980] [INFO    ] [train] Initializing AAI environment
+[2023-08-23 17:13:43,403] [INFO    ] [environment] Connected to Unity environment with package version 2.3.0-exp.3 and communication version 1.5.0
+[2023-08-23 17:13:45,189] [INFO    ] [environment] Connected new brain: AnimalAI?team=0
+[2023-08-23 17:13:45,201] [INFO    ] [train] Wrapping AAI environment
+[2023-08-23 17:13:45,201] [WARNING ] [unity_gym_env] The environment contains multiple observations. You must define allow_multiple_obs=True to receive them all. Otherwise, only the first visual observation (or vector observation ifthere are no visual observations) will be provided in the observation.
+[2023-08-23 17:13:45,290] [INFO    ] [train] Using observation space {'image': Space(dtype=uint8, shape=(64, 64, 3), low=0, high=255), 'reward': Space(dtype=float32, shape=(), low=-inf, high=inf), 'is_first': Space(dtype=bool, shape=(), low=False, high=True), 'is_last': Space(dtype=bool, shape=(), low=False, high=True), 'is_terminal': Space(dtype=bool, shape=(), low=False, high=True)}
+[2023-08-23 17:13:45,292] [INFO    ] [train] Using action space {'action': Space(dtype=int32, shape=(), low=0, high=9), 'reset': Space(dtype=bool, shape=(), low=False, high=True)}
+[2023-08-23 17:13:45,293] [INFO    ] [train] Creating DreamerV3 Agent
+[2023-08-23 17:13:45,522] [INFO    ] [xla_bridge] Unable to initialize backend 'rocm': NOT_FOUND: Could not find registered platform with name: "rocm". Available platform names are: Host CUDA Interpreter
+[2023-08-23 17:13:45,543] [INFO    ] [xla_bridge] Unable to initialize backend 'tpu': module 'jaxlib.xla_extension' has no attribute 'get_tpu_client'
+[2023-08-23 17:13:45,544] [INFO    ] [xla_bridge] Unable to initialize backend 'plugin': xla_extension has no attributes named get_plugin_device_client. Compile TensorFlow with //tensorflow/compiler/xla/python:enable_plugin_device set to true (defaults to false) to enable this.
+[2023-08-23 17:14:08,597] [INFO    ] [train] Starting training
