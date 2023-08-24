@@ -78,10 +78,10 @@ def get_dreamer_config(logdir: Path, dreamer_args: str = ''):
     config = config.update(dreamerv3.configs['xlarge'])
     config = config.update({
         'logdir': logdir,
-        'run.train_ratio': 64,
+        'run.train_ratio': 64, # Same as dmlab
         'run.log_every': 60,  # Seconds
         'batch_size': 16,
-        'jax.prealloc': False,
+        'jax.prealloc': True, # We have enough memory to allow focusing on speed.
         'encoder.mlp_keys': '$^',
         'decoder.mlp_keys': '$^',
         'encoder.cnn_keys': 'image',
@@ -112,6 +112,7 @@ def get_aai_env(task_path, env_path, dreamer_config):
         file_name=str(env_path),
         base_port=port,
         arenas_configurations=task_path,
+        inference=True, # Among other things, set the timescale to 1 i.e. realtime, as we can't match the 300 timescale of the training environment.
         # Set pixels to 64x64 cause it has to be power of 2 for dreamerv3
         resolution=64, # same size as Minecraft in DreamerV3
     )
