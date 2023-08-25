@@ -1,0 +1,6 @@
+jax[cuda12_pip]
+-f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+dreamerv3 @ git+https://github.com/Kinds-of-Intelligence-CFI/dreamerv3-compat.git#egg=dreamerv3
+animalai @ git+https://github.com/Kinds-of-Intelligence-CFI/animal-ai.git@507994582e81cbe019c12843837f1341473f67f7#egg=animalai&subdirectory=animalai
+numpy==1.21.2
+gym==0.26.2
