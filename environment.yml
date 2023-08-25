@@ -1,44 +1,9 @@
-# This setup is tested with NIVIDIA Driver Version: 530.41.03
-# (and CUDA Version: 12.1, but that should be overridden by jax install)
 name: dreamer-animalai
 channels:
-  # Order is important <https://github.com/google/jax#conda-installation>
-  - default # We add this ourselves, cause we don't want Python/pip from forge (it crashes dreamerv3 installation).
-  - conda-forge
-  - nvidia
+  - default
 dependencies:
-  - python=3.10.8
+  - python=3.9
   - pip
-
-  # We specify it here such that
-  # Required by mlagents-envs 0.30.0.
-  # We put it here, because mlagents gets installed by pip, and we want conda to take numpy version into account before installing jax.
-  # Note: Conda has dependency conflicts that we don't understand, but don't seem to crash anything (for now, ignoring)
-  # - numpy=1.21.2
-
-  # Install JAX with GPU support first
-  # <https://github.com/google/jax#conda-installation>
-  - jaxlib=*=*cuda*
-  - jax=0.4.12 # pin on 0.4.12 because later versions require larger numpy, and resolving is very slow
-  - cuda-nvcc
-
-  # ... and the rest
-  - pip:
-      - gym==0.26.2 # Explicit pin for clarity
-
-      # Dreamerv3 with gym 0.26 and gymnasium compatibility
-      # However, you have to install it later, as doing it together with jax makes conda install jax[cpu] instead of jax[cuda]
-      # - "git+https://github.com/Kinds-of-Intelligence-CFI/dreamerv3-compat.git#egg=dreamerv3"
-
-      # The PyPI animalai package (https://pypi.org/project/animalai/) is outdated
-      # and not maintained by LCFI/KoI anymore. The updated version comes from the
-      # <https://github.com/Kinds-of-Intelligence-CFI/animal-ai> repo.
-      # We take the hash of the currently latest commit.
-      # Below is the conda alternative for `pip install ...`
-      - "git+https://github.com/Kinds-of-Intelligence-CFI/animal-ai.git@507994582e81cbe019c12843837f1341473f67f7#egg=animalai&subdirectory=animalai"
-      # - mlagents==0.30.0 (implied by dependency above)
-#
-#
 # -----------------------------
 # Important version constraints
 # -----------------------------
