@@ -2,7 +2,7 @@ name: dreamer-animalai
 channels:
   - default
 dependencies:
-  - python=3.9
+  - python=3.9 # Confirmed working with 3.9.17
   - pip
 # -----------------------------
 # Important version constraints
