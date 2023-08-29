@@ -96,7 +96,7 @@ def aai_env(task_path, dreamer_config, logdir):
 
 
 def main():
-    task_config = "./aai/configs/OP-Controls-RandBasic-SanityGreen-RND-RND-NA-RND-NA.yml"
+    task_config = "./aai/configs/synergysimple1.yml"
 
     date = datetime.now().strftime("%Y_%m_%d_%H_%M")
     logdir = Path("./logdir/") / f'integration-test-{date}'

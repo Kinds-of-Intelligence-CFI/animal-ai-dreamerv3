@@ -43,7 +43,7 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         config = sys.argv[1]
     else:
-        config_folder = "./aai/configs/"
+        config_folder = "./aai/configs/" # TODO: Does not work with folders
         config_files = os.listdir(config_folder)
         rand_idx = random.randint(0, len(config_files) - 1)
         config = config_folder + config_files[rand_idx]
