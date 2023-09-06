@@ -2,6 +2,7 @@ import os
 # Make sure this is above the import of AnimalAIEnvironment
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"  # noqa
 
+from typing import *
 import random
 import shutil
 import argparse
@@ -26,18 +27,25 @@ from animalai.envs.environment import AnimalAIEnvironment
 class Args:
     task: Path
     aai: Path
+    from_checkpoint: Optional[Path]
+    eval_mode: bool
+    eval_eps: int
     dreamer_args: str
-    # TODO: Checkpoint restart
-    # Eval mode. Load checkpoint and run eval.
 
 
 def run(args: Args):
+    assert args.from_checkpoint is not None if args.eval_mode else True, "Must provide a checkpoint to evaluate from."
+    assert args.from_checkpoint.exists() if  args.from_checkpoint is not None else True, f"Checkpoint not found: {args.from_checkpoint}."
+    assert args.from_checkpoint.is_file() if  args.from_checkpoint is not None else True, f"Checkpoint must be a file but is not: {args.from_checkpoint}."
+    assert args.task.exists(), f"Task file not found: {args.task}."
+    assert args.aai.exists(), f"AAI executable file not found: {args.aai}."
+
     task_path = args.task
     task_name = Path(args.task).stem
 
     # Configure logging
     date = datetime.now().strftime("%Y_%m_%d_%H_%M")
-    logdir = Path("./logdir/") / f'training-{date}-{task_name}'
+    logdir = Path("./logdir/") / f'{"eval" if args.eval_mode else "training"}-{date}-{task_name}'
     logdir.mkdir(parents=True)
     (logdir / 'log.txt').touch()
     handler = logging.FileHandler(logdir / 'log.txt')
@@ -49,7 +57,11 @@ def run(args: Args):
     logging.info(f"Args: {args}")
 
     logging.info("Creating DreamerV3 config")
-    dreamer_config, step, logger = get_dreamer_config(logdir, args.dreamer_args)
+    dreamer_config, step, logger = get_dreamer_config(logdir, args.dreamer_args, args.from_checkpoint)
+    dreamer_config = dreamer_config.update({
+        'run.from_checkpoint': args.from_checkpoint,
+        'run.eval_eps': args.eval_eps,
+    })
     dreamer_config.save(logdir / 'dreamer_config.yaml')
 
     logging.info(f"Creating AAI Dreamer Environment")
@@ -57,6 +69,7 @@ def run(args: Args):
 
     logging.info("Creating DreamerV3 Agent")
     agent = dreamerv3.Agent(env.obs_space, env.act_space, step, dreamer_config)
+
     replay = embodied.replay.Uniform(
         dreamer_config.batch_length, 
         dreamer_config.replay_size,
@@ -65,14 +78,15 @@ def run(args: Args):
         **dreamer_config.run, 
         logdir=dreamer_config.logdir,
         batch_steps=dreamer_config.batch_size * dreamer_config.batch_length)  # type: ignore
+    if args.eval_mode:
+        logging.info("Starting evaluation")
+        embodied.run.eval_only(agent, env, logger, emb_config)
+    else:
+        logging.info("Starting training")
+        embodied.run.train(agent, env, replay, logger, emb_config)
 
-    logging.info("Starting training")
 
-    embodied.run.train(agent, env, replay, logger, emb_config)
-    # embodied.run.eval_only(agent, env, logger, emb_config)
-
-
-def get_dreamer_config(logdir: Path, dreamer_args: str = ''):
+def get_dreamer_config(logdir: Path, dreamer_args: str = '', from_checkpoint: Optional[Path] = None):
     # See configs.yaml for all options.
     config = embodied.Config(dreamerv3.configs['defaults'])
     config = config.update(dreamerv3.configs['xlarge'])
@@ -136,6 +150,9 @@ if __name__ == '__main__':
     parser.add_argument('--task', type=Path, required=True)
     parser.add_argument('--aai', type=Path, default=Path('./aai/env/AnimalAI.x86_64'))
     parser.add_argument('--dreamer-args', type=str, default='', help='Extra args to pass to dreamerv3.')
+    parser.add_argument('--eval-mode', action='store_true', help='Run in evaluation mode. Make sure to also load a checkpoint.')
+    parser.add_argument('--eval-eps', type=int, default=100, help='Number of episodes to run in evaluation mode.')
+    parser.add_argument('--from-checkpoint', type=Path, help='Load a checkpoint to continue training or evaluate from.')
     args_raw = parser.parse_args()
 
     args = Args(**vars(args_raw))
