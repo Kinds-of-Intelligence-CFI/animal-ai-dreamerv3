@@ -5,6 +5,7 @@ os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"  # noqa
 from typing import *
 import random
 import shutil
+import shlex
 import argparse
 from pathlib import Path
 from datetime import datetime
@@ -59,7 +60,7 @@ def run(args: Args):
     logging.info("Creating DreamerV3 config")
     dreamer_config, step, logger = get_dreamer_config(logdir, args.dreamer_args, args.from_checkpoint)
     dreamer_config = dreamer_config.update({
-        'run.from_checkpoint': args.from_checkpoint,
+        'run.from_checkpoint': args.from_checkpoint or '',
         'run.eval_eps': args.eval_eps,
     })
     dreamer_config.save(logdir / 'dreamer_config.yaml')
@@ -102,7 +103,7 @@ def get_dreamer_config(logdir: Path, dreamer_args: str = '', from_checkpoint: Op
         'decoder.cnn_keys': 'image',
         #   'jax.platform': 'cpu',
     })
-    config = embodied.Flags(config).parse(dreamer_args)
+    config = embodied.Flags(config).parse(shlex.split(dreamer_args))
 
     step = embodied.Counter()
 
@@ -140,10 +141,14 @@ def get_aai_env(task_path, env_path, dreamer_config):
     logging.info(f"Using observation space {env.obs_space}")
     logging.info(f"Using action space {env.act_space}")
     env = dreamerv3.wrap_env(env, dreamer_config)
+    # env = MonkeyPatchLen(env)  # Dreamerv3 expects env to have a __len__ method.
     env = embodied.BatchEnv([env], parallel=False)
 
     return env
 
+class MonkeyPatchLen(embodied.core.base.Wrapper):
+    def __len__(self):
+        return 1
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
