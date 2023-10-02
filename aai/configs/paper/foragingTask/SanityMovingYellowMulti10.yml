@@ -1,6 +1,6 @@
 !ArenaConfig
 arenas:
-  -1: !Arena
+  0: !Arena
     pass_mark: 19
     t: 500
     items:
