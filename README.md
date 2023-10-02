@@ -22,7 +22,7 @@
 
 ### Running on headless servers
 
-Use Xvfb, e.g. through `CUDA_VISIBLE_DEVICES=0 xvfb-run -a python train.py --env PATH`
+Use Xvfb, e.g. through `CUDA_VISIBLE_DEVICES=0 xvfb-run -a python train.py --task aai/configs/sanityGreenAndYellow.yml --env aai/env3.1.3/AAI/x86_64`
 
 ## References
 
