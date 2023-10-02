@@ -3,6 +3,8 @@ import os
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"  # noqa
 
 from pathlib import Path
+from typing import *
+import dataclasses
 import logging
 from datetime import datetime
 logging.basicConfig(  # noqa
@@ -54,12 +56,9 @@ def get_dreamer_config(run_logdir):
     return config, step, logger, logdir
 
 
-def aai_env(task_path, dreamer_config, logdir):
+def aai_env(task_path, env_path, dreamer_config, logdir):
     # use a random port to avoid problems if a previous version exits slowly
     port = 5005 + random.randint(0, 1000)
-
-    # env_path = "./aai/env3.0.1/AAI_v3.0.1_build_linux_090422.x86_64"
-    env_path = "./aai/env3.0.2/AAI3Linux.x86_64"
 
     logging.info("Initializing AAI environment")
     aai_env = AnimalAIEnvironment(
@@ -95,8 +94,7 @@ def aai_env(task_path, dreamer_config, logdir):
     return env
 
 
-def main():
-    task_config = "./aai/configs/synergysimple1.yml"
+def main(task_config, env_path):
 
     date = datetime.now().strftime("%Y_%m_%d_%H_%M")
     logdir = Path("./logdir/") / f'integration-test-{date}'
@@ -104,7 +102,7 @@ def main():
     logging.info("Creating DreamerV3 config")
     dreamer_config, step, logger, logdir = get_dreamer_config(logdir)
     logging.info(f"Creating AAI Dreamer Environment")
-    env = aai_env(task_config, dreamer_config, logdir)
+    env = aai_env(task_config, env_path, dreamer_config, logdir)
 
     logging.info("Creating DreamerV3 Agent")
     agent = dreamerv3.Agent(env.obs_space, env.act_space, step, dreamer_config)
@@ -118,6 +116,49 @@ def main():
     embodied.run.train(agent, env, replay, logger, args)
     # embodied.run.eval_only(agent, env, logger, args)
 
+@dataclasses.dataclass
+class Args:
+    config: Optional[Path]
+    env: Optional[Path]
 
 if __name__ == '__main__':
-    main()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("config", nargs='?', type=Path, default=None)
+    parser.add_argument("--env", type=Path, default=None)
+    args_raw = parser.parse_args()
+    args = Args(**vars(args_raw))
+
+    if args.config is not None:
+        config = args.config
+    else:
+        import glob
+        config_files = list(glob.glob("./aai/configs/**/*.yml", recursive=True))
+        config = Path(random.choice(config_files))
+    
+    if args.env is not None:
+        env_path = args.env
+    else:
+        # Look for latest version of AAI
+        error_msg = "This script will look for the latest version of AAI in the ./aai folder " \
+                    "by matching ./aai/env*/ where the folder with the " \
+                    "lexically last value for * is used." \
+                    "In that folder it will look for {AAI,AnimalAI}.{x86_64,exe,app}." \
+                    "You also specify the path with the --env argument."
+        env_folders = sorted(Path("./aai/").glob("env*"))
+        assert len(env_folders) > 0, f"Could not find any AAI environments matching ./aai/env*/. \n{error_msg}"
+
+        # We brace expand manually because glob does not support it.
+        env_bins = [
+            bin
+            for bin_name in ["AAI", "AnimalAI"]
+            for ext in ["x86_64", "exe", "app"]
+            for bin in env_folders[-1].glob(f"{bin_name}.{ext}")
+        ]
+        assert len(env_bins) > 0, f"Could not find any AAI binaries in {env_folders[-1]}. \n{error_msg}"
+        env_path = env_bins[0]
+
+    print(f"Using environment {env_path}.")
+    print(f"Using configuration file {config}.")
+
+    main(config, env_path)

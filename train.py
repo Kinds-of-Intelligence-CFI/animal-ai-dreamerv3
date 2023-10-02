@@ -27,7 +27,7 @@ from animalai.envs.environment import AnimalAIEnvironment
 @dataclass
 class Args:
     task: Path
-    aai: Path
+    env: Path
     from_checkpoint: Optional[Path]
     eval_mode: bool
     eval_eps: int
@@ -39,7 +39,7 @@ def run(args: Args):
     assert args.from_checkpoint.exists() if  args.from_checkpoint is not None else True, f"Checkpoint not found: {args.from_checkpoint}."
     assert args.from_checkpoint.is_file() if  args.from_checkpoint is not None else True, f"Checkpoint must be a file but is not: {args.from_checkpoint}."
     assert args.task.exists(), f"Task file not found: {args.task}."
-    assert args.aai.exists(), f"AAI executable file not found: {args.aai}."
+    assert args.env.exists(), f"AAI executable file not found: {args.env}."
 
     task_path = args.task
     task_name = Path(args.task).stem
@@ -66,7 +66,7 @@ def run(args: Args):
     dreamer_config.save(logdir / 'dreamer_config.yaml')
 
     logging.info(f"Creating AAI Dreamer Environment")
-    env = get_aai_env(task_path, args.aai, dreamer_config)
+    env = get_aai_env(task_path, args.env, dreamer_config)
 
     logging.info("Creating DreamerV3 Agent")
     agent = dreamerv3.Agent(env.obs_space, env.act_space, step, dreamer_config)
@@ -152,8 +152,8 @@ class MonkeyPatchLen(embodied.core.base.Wrapper):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--task', type=Path, required=True)
-    parser.add_argument('--aai', type=Path, default=Path('./aai/env/AnimalAI.x86_64'))
+    parser.add_argument('--task', type=Path, required=True, help='Path to the task file.')
+    parser.add_argument('--env', type=Path, required=True, help='Path to the AnimalAI executable.')
     parser.add_argument('--dreamer-args', type=str, default='', help='Extra args to pass to dreamerv3.')
     parser.add_argument('--eval-mode', action='store_true', help='Run in evaluation mode. Make sure to also load a checkpoint.')
     parser.add_argument('--eval-eps', type=int, default=100, help='Number of episodes to run in evaluation mode.')

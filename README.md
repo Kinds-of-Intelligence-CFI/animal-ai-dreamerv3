@@ -4,7 +4,7 @@
 
 1. Install requirements with `pip install --requirement requirements.txt`.
    **Note:** Only Python 3.9 is supported. Make sure that is the installed version on your OS, Docker container or virtual environment.
-2. Download the [AnimalAI environment](https://github.com/Kinds-of-Intelligence-CFI/animal-ai#quick-install-please-see-release-for-latest-version-of-aai-3). The current integration test script will look for the env at `./aai/env/AnimalAI.x86_64`. The train script as well, but there is an `--aai` flag available to look in different locations. Feel free to just modify the scripts.
+2. Download the [AnimalAI environment](https://github.com/Kinds-of-Intelligence-CFI/animal-ai#quick-install-please-see-release-for-latest-version-of-aai-3). The test scripts will look for the env at `./aai/env*/{AnimalAI,AAI}.{x86_64,exe,app}`, where the lexicographically latest folder will be selected, but there is an `--env` flag to set the path manually. For the train script, the `--env` flag is required. Feel free to just modify the scripts.
 3. Run tests to sanity check the installation.
 
    - `python tests/jaxtest.py`
@@ -22,7 +22,7 @@
 
 ### Running on headless servers
 
-Use Xvfb, e.g. through `CUDA_VISIBLE_DEVICES=0 xvfb-run -a python train.py`
+Use Xvfb, e.g. through `CUDA_VISIBLE_DEVICES=0 xvfb-run -a python train.py --env PATH`
 
 ## References
 
