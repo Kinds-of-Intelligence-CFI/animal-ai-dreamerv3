@@ -18,11 +18,11 @@
 
      We set only the 0'th (i.e. the first) GPU visible because DreamerV3 does not explicitly support multi GPU and we don't want to hog more resources than necessary. This is of course not needed if there is only 1 GPU available.
 
-4. Adapt the `train.py` script to your training needs.
+4. Adapt the `train.py` script to your training needs, e.g. disabling wandb logging.
 
 ### Running on headless servers
 
-Use Xvfb, e.g. through `CUDA_VISIBLE_DEVICES=0 xvfb-run -a python train.py --task aai/configs/sanityGreenAndYellow.yml --env aai/env3.1.3/AAI/x86_64`
+Use Xvfb, e.g. through `CUDA_VISIBLE_DEVICES=0 xvfb-run -a python train.py --task aai/configs/sanityGreenAndYellow.yml --env aai/env3.1.3/AAI.x86_64`
 
 ## References
 

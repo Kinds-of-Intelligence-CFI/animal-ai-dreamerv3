@@ -111,7 +111,11 @@ def get_dreamer_config(logdir: Path, dreamer_args: str = '', from_checkpoint: Op
         embodied.logger.TerminalOutput(),
         embodied.logger.JSONLOutput(logdir, 'metrics.jsonl'),
         embodied.logger.TensorBoardOutput(logdir),
-        # embodied.logger.WandBOutput(logdir.name, config),
+        embodied.logger.WandBOutput(wandb_init_kwargs={
+          'project': 'dreamerv3-animalai',
+          'name': logdir.name,
+          'config': dict(config),
+        }),
         # embodied.logger.MLFlowOutput(logdir.name),
     ])
 

@@ -4,3 +4,7 @@ dreamerv3 @ git+https://github.com/Kinds-of-Intelligence-CFI/dreamerv3-compat.gi
 animalai @ git+https://github.com/Kinds-of-Intelligence-CFI/animal-ai.git@cea60396626ddbf5604d5ddbfb7d3147d078605d#egg=animalai&subdirectory=animalai
 numpy==1.21.2
 gym==0.26.2
+
+wandb
+moviepy # Needed for gif/video saving to wandb
+imageio # Needed for gif/video saving to wandb

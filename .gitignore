@@ -21,6 +21,8 @@ aai/configs-private/*
 aai/env*/*
 !aai/env/.gitkeep
 
+wandb/
+
 # Python stuff
 .venv
 __pycache__/
