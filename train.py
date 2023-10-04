@@ -118,7 +118,7 @@ def get_dreamer_config(logdir: Path, dreamer_args: str = '', from_checkpoint: Op
     return config, step, logger
 
 
-def get_aai_env(task_path, env_path, dreamer_config):
+def get_aai_env(task_path: Union[Path, str], env_path: Union[Path, str], dreamer_config):
     # Use a random port to avoid problems if a previous version exits slowly
     port = 5005 + random.randint(0, 1000)
 
@@ -126,8 +126,7 @@ def get_aai_env(task_path, env_path, dreamer_config):
     aai_env = AnimalAIEnvironment(
         file_name=str(env_path),
         base_port=port,
-        arenas_configurations=task_path,
-        inference=True, # Among other things, set the timescale to 1 i.e. realtime, as we can't match the 300 timescale of the training environment.
+        arenas_configurations=str(task_path),
         # Set pixels to 64x64 cause it has to be power of 2 for dreamerv3
         resolution=64, # same size as Minecraft in DreamerV3
     )

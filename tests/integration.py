@@ -56,15 +56,15 @@ def get_dreamer_config(run_logdir):
     return config, step, logger, logdir
 
 
-def aai_env(task_path, env_path, dreamer_config, logdir):
+def aai_env(task_path: Union[Path, str], env_path: Union[Path, str], dreamer_config, logdir):
     # use a random port to avoid problems if a previous version exits slowly
     port = 5005 + random.randint(0, 1000)
 
     logging.info("Initializing AAI environment")
     aai_env = AnimalAIEnvironment(
-        file_name=env_path,
+        file_name=str(env_path),
         base_port=port,
-        arenas_configurations=task_path,
+        arenas_configurations=str(task_path),
         # Set pixels to 64x64 cause it has to be power of 2 for dreamerv3
         resolution=64,
         # Don't enable when using visual observations, as they will be all gray. Maybe okay when raycasting.
