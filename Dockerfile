@@ -37,26 +37,24 @@ RUN apt-get update && \
         xvfb && \
     /apt_cleanup
 
-# Install miniconda
-ENV CONDA_DIR /opt/conda
-RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh && \
-    /bin/bash ~/miniconda.sh -b -p /opt/conda
-ENV PATH=$CONDA_DIR/bin:$PATH
-# ... and activate conda env by default in interactive shell
-RUN conda init bash && \
-    echo "conda activate /dreamerv3-animalai/.venv" >> ~/.bashrc
+# Install python 3.9
+RUN apt-get update && \
+    add-apt-repository ppa:deadsnakes/ppa -y && \
+    apt-get update && \
+    env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        python3.9 \
+        python3.9-dev \
+        python3.9-venv \
+        python3-pip \
+        && \
+    python3.9 -m pip install --upgrade pip && \
+    update-alternatives --install /usr/bin/python python /usr/bin/python3.9 1 && \
+    /apt_cleanup
 
-# Install a python 3.9 environment
-COPY environment.yml .
-RUN conda env create --prefix .venv -f environment.yml
-
-# Make RUN commands use the new environment:
-SHELL ["conda", "run", "--no-capture-output", "-p", "/dreamerv3-animalai/.venv", "/bin/bash", "-c"]
-
-# Install python dependencies (in the conda environment)
+# Install python dependencies
 COPY requirements.txt .
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip install -r requirements.txt
 
 # The ENTRYPOINT specified by NVIDIA's docker image is a bash wrapper 
 # that prints some NVIDIA stuff, but also whether GPU drivers are detected (which is usefull).
-# We don't override it.
+# We therefore don't override it with ENTRYPOINT or CMD.

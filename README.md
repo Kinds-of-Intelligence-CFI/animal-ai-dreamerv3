@@ -54,19 +54,19 @@ $ docker run -it --rm \
   woutschellaert/dreamerv3-animalai
 ```
 
-which gives an interactive shell, in which the conda environment is also already activated.
+which gives an interactive shell. Be sure to replace `$(pwd)` with something that works on your system, or just use an absolute path.
 
 Or you can just execute a command directly:
 
-**Note: Currently not working yet.**
+**Note: The below is currently not working yet, but there are workarounds available [here](https://stackoverflow.com/questions/41130240/docker-command-wont-work-unless-i-open-an-interactive-bash-terminal.)**
 
 ```shell
-$ docker run --rm -i \
+$ docker run --rm -it \
   --env-file .env \
   -v $(pwd):/dreamerv3-animalai/mnt/ \
   --workdir /dreamerv3-animalai/mnt/ \
   dreamerv3-animalai \
-  conda run --no-capture-output -p .venv /bin/bash -c "xvfb-run -a python tests/integration.py"
+  xvfb-run -a python tests/integration.py
 ```
 
 ## References
