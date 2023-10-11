@@ -38,7 +38,7 @@ def get_dreamer_config(run_logdir):
         'decoder.mlp_keys': '$^',
         'encoder.cnn_keys': 'image',
         'decoder.cnn_keys': 'image',
-        #   'jax.platform': 'cpu',
+        # 'jax.platform': 'cpu',
     })
     config = embodied.Flags(config).parse()
 

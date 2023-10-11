@@ -21,7 +21,9 @@ aai/configs-private/*
 aai/env*/*
 !aai/env/.gitkeep
 
+# Wandb
 wandb/
+.env
 
 # Python stuff
 .venv

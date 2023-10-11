@@ -24,6 +24,51 @@
 
 Use Xvfb, e.g. through `CUDA_VISIBLE_DEVICES=0 xvfb-run -a python train.py --task aai/configs/sanityGreenAndYellow.yml --env aai/env3.1.3/AAI.x86_64`
 
+Alternatively, if Xvfb and an X server are not installed, run with Docker (see below).
+
+### Running in Docker (on a headless server)
+
+We provide a Docker image that installs:
+
+- NVIDIA GPU utilities (from the base image)
+- Base utilities (e.g. ffmpeg for logging DreamerV3 gifs)
+- an X server, Xvfb, and other graphical tools so AnimalaI's Unity can render to something
+- Miniconda, and the conda environment specified in this repository.
+- All python dependencies from requirements.txt.
+
+The image is published at [woutschellaert/dreamerv3-animalai
+](https://hub.docker.com/r/woutschellaert/dreamerv3-animalai).
+
+**Note: The Docker image does not contain the AnimalAI Unity environment. Download the Linux build (as in step 2 above) and mount it to the container when executing `docker run`.**
+
+If using wandb logging, be sure to add your API key to `.env`.
+
+You can run the container like this:
+
+```shell
+$ docker run -it --rm \
+  --env-file .env \
+  -v $(pwd):/dreamerv3-animalai/mnt/ \
+  --workdir /dreamerv3-animalai/mnt/ \
+  dreamerv3-animalai
+  woutschellaert/dreamerv3-animalai
+```
+
+which gives an interactive shell, in which the conda environment is also already activated.
+
+Or you can just execute a command directly:
+
+**Note: Currently not working yet.**
+
+```shell
+$ docker run --rm -i \
+  --env-file .env \
+  -v $(pwd):/dreamerv3-animalai/mnt/ \
+  --workdir /dreamerv3-animalai/mnt/ \
+  dreamerv3-animalai \
+  conda run --no-capture-output -p .venv /bin/bash -c "xvfb-run -a python tests/integration.py"
+```
+
 ## References
 
 - <https://github.com/Kinds-of-Intelligence-CFI/animal-ai-unity-project>
