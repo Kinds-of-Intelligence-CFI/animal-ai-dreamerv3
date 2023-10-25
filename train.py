@@ -28,9 +28,9 @@ from animalai.envs.environment import AnimalAIEnvironment
 class Args:
     task: Path
     env: Path
-    from_checkpoint: Optional[Path]
     eval_mode: bool
-    eval_eps: int
+    from_checkpoint: Optional[Path]
+    logdir: Optional[Path]
     dreamer_args: str
 
 
@@ -46,7 +46,10 @@ def run(args: Args):
 
     # Configure logging
     date = datetime.now().strftime("%Y_%m_%d_%H_%M")
-    logdir = Path("./logdir/") / f'{"eval" if args.eval_mode else "training"}-{date}-{task_name}'
+    if args.logdir is not None:
+        logdir = args.logdir
+    else:
+        logdir = Path("./logdir/") / f'{"eval" if args.eval_mode else "training"}-{date}-{task_name}'
     logdir.mkdir(parents=True)
     (logdir / 'log.txt').touch()
     handler = logging.FileHandler(logdir / 'log.txt')
@@ -61,7 +64,6 @@ def run(args: Args):
     dreamer_config, step, logger = get_dreamer_config(logdir, args.dreamer_args, args.from_checkpoint)
     dreamer_config = dreamer_config.update({
         'run.from_checkpoint': args.from_checkpoint or '',
-        'run.eval_eps': args.eval_eps,
     })
     dreamer_config.save(logdir / 'dreamer_config.yaml')
 
@@ -101,7 +103,7 @@ def get_dreamer_config(logdir: Path, dreamer_args: str = '', from_checkpoint: Op
         'decoder.mlp_keys': '$^',
         'encoder.cnn_keys': 'image',
         'decoder.cnn_keys': 'image',
-        #   'jax.platform': 'cpu',
+          'jax.platform': 'cpu',
     })
     config = embodied.Flags(config).parse(shlex.split(dreamer_args))
 
@@ -157,10 +159,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--task', type=Path, required=True, help='Path to the task file.')
     parser.add_argument('--env', type=Path, required=True, help='Path to the AnimalAI executable.')
-    parser.add_argument('--dreamer-args', type=str, default='', help='Extra args to pass to dreamerv3.')
     parser.add_argument('--eval-mode', action='store_true', help='Run in evaluation mode. Make sure to also load a checkpoint.')
-    parser.add_argument('--eval-eps', type=int, default=100, help='Number of episodes to run in evaluation mode.')
     parser.add_argument('--from-checkpoint', type=Path, help='Load a checkpoint to continue training or evaluate from.')
+    parser.add_argument('--logdir', type=Path, help='Directory to save logs to.')
+    parser.add_argument('--dreamer-args', type=str, default='', help='Extra args to pass to dreamerv3.')
     args_raw = parser.parse_args()
 
     args = Args(**vars(args_raw))
