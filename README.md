@@ -55,7 +55,7 @@ $ docker run -it --rm \
   woutschellaert/dreamerv3-animalai
 ```
 
-which gives an interactive shell. Be sure to replace `$(pwd)` with something that works on your system, or just use an absolute path. The `--gpu` flag is needed to pass through host GPUs to the container, but there are some requirements (documented [here](https://docs.docker.com/config/containers/resource_constraints/#gpu)). We recommend testing with Dreamer in CPU mode first.
+which gives an interactive shell. Be sure to replace `$(pwd)` with something that works on your system, or just use an absolute path. The `--gpu` flag is needed to pass through host GPUs to the container, but there are some requirements (documented [here](https://docs.docker.com/config/containers/resource_constraints/#gpu)). We recommend testing with Dreamer in CPU mode first with the integration test `--cpu` flag.
 
 You can also execute commands directly:
 

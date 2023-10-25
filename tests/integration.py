@@ -24,7 +24,7 @@ from mlagents_envs.envs.unity_gym_env import UnityToGymWrapper
 from animalai.envs.environment import AnimalAIEnvironment
 
 
-def get_dreamer_config(run_logdir):
+def get_dreamer_config(run_logdir, args):
     # See configs.yaml for all options.
     config = embodied.Config(dreamerv3.configs['defaults'])
     config = config.update(dreamerv3.configs['medium'])
@@ -38,8 +38,11 @@ def get_dreamer_config(run_logdir):
         'decoder.mlp_keys': '$^',
         'encoder.cnn_keys': 'image',
         'decoder.cnn_keys': 'image',
-        # 'jax.platform': 'cpu',
     })
+    if args.cpu:
+        config = config.update({
+            'jax.platform': 'cpu',
+        })
     config = embodied.Flags(config).parse()
 
     step = embodied.Counter()
@@ -98,13 +101,13 @@ def aai_env(task_path: Union[Path, str], env_path: Union[Path, str], dreamer_con
     return env
 
 
-def main(task_config, env_path):
+def main(task_config, env_path, args):
 
     date = datetime.now().strftime("%Y_%m_%d_%H_%M")
     logdir = Path("./logdir/") / f'integration-test-{date}'
 
     logging.info("Creating DreamerV3 config")
-    dreamer_config, step, logger, logdir = get_dreamer_config(logdir)
+    dreamer_config, step, logger, logdir = get_dreamer_config(logdir, args)
     logging.info(f"Creating AAI Dreamer Environment")
     env = aai_env(task_config, env_path, dreamer_config, logdir)
 
@@ -124,12 +127,14 @@ def main(task_config, env_path):
 class Args:
     config: Optional[Path]
     env: Optional[Path]
+    cpu: bool
 
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("config", nargs='?', type=Path, default=None)
     parser.add_argument("--env", type=Path, default=None)
+    parser.add_argument("--cpu", action="store_true", default=False)
     args_raw = parser.parse_args()
     args = Args(**vars(args_raw))
 
@@ -165,4 +170,4 @@ if __name__ == '__main__':
     print(f"Using environment {env_path}.")
     print(f"Using configuration file {config}.")
 
-    main(config, env_path)
+    main(config, env_path, args)
