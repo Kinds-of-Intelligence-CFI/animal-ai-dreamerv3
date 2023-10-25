@@ -103,7 +103,7 @@ def get_dreamer_config(logdir: Path, dreamer_args: str = '', from_checkpoint: Op
         'decoder.mlp_keys': '$^',
         'encoder.cnn_keys': 'image',
         'decoder.cnn_keys': 'image',
-          'jax.platform': 'cpu',
+        # 'jax.platform': 'cpu',
     })
     config = embodied.Flags(config).parse(shlex.split(dreamer_args))
 
