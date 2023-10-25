@@ -48,26 +48,28 @@ You can run the container like this:
 ```shell
 $ docker run -it --rm \
   --env-file .env \
+  --gpus '"device=0"' \
   -v $(pwd):/dreamerv3-animalai/mnt/ \
   --workdir /dreamerv3-animalai/mnt/ \
   dreamerv3-animalai
   woutschellaert/dreamerv3-animalai
 ```
 
-which gives an interactive shell. Be sure to replace `$(pwd)` with something that works on your system, or just use an absolute path.
+which gives an interactive shell. Be sure to replace `$(pwd)` with something that works on your system, or just use an absolute path. The `--gpu` flag is needed to pass through host GPUs to the container, but there are some requirements (documented [here](https://docs.docker.com/config/containers/resource_constraints/#gpu)). We recommend testing with Dreamer in CPU mode first.
 
-Or you can just execute a command directly:
-
-**Note: The below is currently not working yet, but there are workarounds available [here](https://stackoverflow.com/questions/41130240/docker-command-wont-work-unless-i-open-an-interactive-bash-terminal.)**
+You can also execute commands directly:
 
 ```shell
 $ docker run --rm -it \
   --env-file .env \
+  --gpus '"device=0"' \
   -v $(pwd):/dreamerv3-animalai/mnt/ \
   --workdir /dreamerv3-animalai/mnt/ \
   dreamerv3-animalai \
-  xvfb-run -a python tests/integration.py
+  ./tests/integration-docker.sh
 ```
+
+**Note: There are some Docker bugs that prevent executing commands directly (i.e. they hang), but an easy workaround is to wrap the command in a script as demonstrated above. Other workarounds are described [here](https://stackoverflow.com/questions/41130240/docker-command-wont-work-unless-i-open-an-interactive-bash-terminal.)**
 
 ## References
 
