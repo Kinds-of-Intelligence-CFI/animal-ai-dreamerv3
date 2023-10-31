@@ -88,6 +88,10 @@ def run(args: Args):
         logging.info("Starting training")
         embodied.run.train(agent, env, replay, logger, emb_config)
 
+    logging.info("Closing environment")
+    env.close()
+    logging.info("Environment closed.")
+
 
 def get_dreamer_config(logdir: Path, dreamer_args: str = '', from_checkpoint: Optional[Path] = None):
     # See configs.yaml for all options.
