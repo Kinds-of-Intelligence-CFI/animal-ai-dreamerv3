@@ -1,4 +1,6 @@
 import os
+
+from gym.core import Env
 # Make sure this is above the import of AnimalAIEnvironment
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"  # noqa
 
@@ -16,10 +18,13 @@ logging.basicConfig(  # noqa
 
 import random
 
+import gym
+import gym.spaces
+import gym.wrappers.compatibility
+
 import dreamerv3
 from dreamerv3 import embodied
 from dreamerv3.embodied.envs import from_gym
-from gym.wrappers.compatibility import EnvCompatibility
 
 from mlagents_envs.envs.unity_gym_env import UnityToGymWrapper
 from animalai.envs.environment import AnimalAIEnvironment
@@ -69,6 +74,24 @@ def get_dreamer_config(run_logdir, args: Args):
 
     return config, step, logger, logdir
 
+class MultiObsWrapper(gym.ObservationWrapper): # type: ignore
+    """
+    Go from tuple to dict observation space.
+
+    <https://www.gymlibrary.dev/api/wrappers/#observationwrapper>
+    """
+    def __init__(self, env: Env):
+        super().__init__(env)
+        tuple_obs_space: gym.spaces.Tuple = self.observation_space # type: ignore
+        self.observation_space = gym.spaces.Dict({
+            'image': tuple_obs_space[0],
+            'extra': tuple_obs_space[1], # Health, velocity (x, y, z), and global position (x, y, z)
+        })
+    
+    def observation(self, observation):
+        image, extra = observation
+        return {'image': image, 'extra': extra}
+
 
 def aai_env(task_path: Union[Path, str], env_path: Union[Path, str], dreamer_config, logdir):
     # use a random port to avoid problems if a previous version exits slowly
@@ -89,14 +112,17 @@ def aai_env(task_path: Union[Path, str], env_path: Union[Path, str], dreamer_con
     logging.info("Applying UnityToGymWrapper")
     env = UnityToGymWrapper(
         aai_env, uint8_visual=True,
-        # allow_multiple_obs=True, # This crashes somewhere in one of the wrappers.
+        allow_multiple_obs=True, # Also provide health, velocity (x, y, z), and global position (x, y, z)
         flatten_branched=True)  # Necessary. Dreamerv3 doesn't support MultiDiscrete action space.
 
     logging.info("Applying EnvCompatibility")
-    env = EnvCompatibility(env, render_mode='rgb_array')  # type: ignore
+    env = gym.wrappers.compatibility.EnvCompatibility(env, render_mode='rgb_array') # type: ignore
+    env = MultiObsWrapper(env)
+    logging.info(f"Using observation space {env.observation_space}")
+    logging.info(f"Using action space {env.action_space}")
 
     logging.info("Applying DreamerV3 FromGym")
-    env = from_gym.FromGym(env, obs_key='image')
+    env = from_gym.FromGym(env)
     logging.info(f"Using observation space {env.obs_space}")
     logging.info(f"Using action space {env.act_space}")
 
