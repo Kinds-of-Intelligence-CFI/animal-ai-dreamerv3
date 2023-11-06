@@ -6,7 +6,7 @@ def main():
 
     # See configs.yaml for all options.
     config = embodied.Config(dreamerv3.configs['defaults'])
-    config = config.update(dreamerv3.configs['medium'])
+    config = config.update(dreamerv3.configs['small'])
     config = config.update({
         'logdir': './logdir/crafter1',
         'run.train_ratio': 64,

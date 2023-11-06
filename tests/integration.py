@@ -34,7 +34,7 @@ class Args:
 def get_dreamer_config(run_logdir, args: Args):
     # See configs.yaml for all options.
     config = embodied.Config(dreamerv3.configs['defaults'])
-    config = config.update(dreamerv3.configs['medium'])
+    config = config.update(dreamerv3.configs['small'])
     config = config.update({
         'logdir': run_logdir,
         'run.train_ratio': 64,
