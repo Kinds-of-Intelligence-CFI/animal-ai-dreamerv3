@@ -4,6 +4,7 @@ os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"  # noqa
 
 from pathlib import Path
 from typing import *
+import shlex
 import dataclasses
 import logging
 from datetime import datetime
@@ -23,8 +24,14 @@ from gym.wrappers.compatibility import EnvCompatibility
 from mlagents_envs.envs.unity_gym_env import UnityToGymWrapper
 from animalai.envs.environment import AnimalAIEnvironment
 
+@dataclasses.dataclass
+class Args:
+    config: Optional[Path]
+    env: Optional[Path]
+    cpu: bool
+    dreamer_args: str
 
-def get_dreamer_config(run_logdir, args):
+def get_dreamer_config(run_logdir, args: Args):
     # See configs.yaml for all options.
     config = embodied.Config(dreamerv3.configs['defaults'])
     config = config.update(dreamerv3.configs['medium'])
@@ -43,7 +50,7 @@ def get_dreamer_config(run_logdir, args):
         config = config.update({
             'jax.platform': 'cpu',
         })
-    config = embodied.Flags(config).parse()
+    config = embodied.Flags(config).parse(shlex.split(args.dreamer_args))
 
     step = embodied.Counter()
 
@@ -123,18 +130,13 @@ def main(task_config, env_path, args):
     embodied.run.train(agent, env, replay, logger, args)
     # embodied.run.eval_only(agent, env, logger, args)
 
-@dataclasses.dataclass
-class Args:
-    config: Optional[Path]
-    env: Optional[Path]
-    cpu: bool
-
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("config", nargs='?', type=Path, default=None)
     parser.add_argument("--env", type=Path, default=None)
     parser.add_argument("--cpu", action="store_true", default=False)
+    parser.add_argument("--dreamer-args", type=str, default='')
     args_raw = parser.parse_args()
     args = Args(**vars(args_raw))
 
