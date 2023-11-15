@@ -1,10 +1,23 @@
+# Use jax with CUDA 12 support by default. Running Dreamer on CPU is not feasible.
+# Modify to use other CUDA versions if needed.
 jax[cuda12_pip]
 -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
-dreamerv3 @ git+https://github.com/Kinds-of-Intelligence-CFI/dreamerv3-compat.git#egg=dreamerv3
+
+# Latest tested version of AnimalAI
+# Note: Through its dependency on ml-agents, this implies numpy==1.21.1
+# animalai==3.0.4 # This currently still has too much dependencies specified.
 animalai @ git+https://github.com/Kinds-of-Intelligence-CFI/animal-ai.git@cea60396626ddbf5604d5ddbfb7d3147d078605d#egg=animalai&subdirectory=animalai
-numpy==1.21.2
+
+
+# Use an port of DreamerV3 that is compatible AnimalAI dependencies
+# Mainly: Support for Gym 0.26.2 / Gymnasium APIs is needed.
+# For the sake of being explicit, pin the specific Gym version that is used 
+# in this port and the Unity ml-agents package.
+dreamerv3 @ git+https://github.com/Kinds-of-Intelligence-CFI/dreamerv3-compat.git#egg=dreamerv3
 gym==0.26.2
 
+
+# Wandb, and dependencies for saving gifs/videos to wandb.
 wandb
-moviepy # Needed for gif/video saving to wandb
-imageio # Needed for gif/video saving to wandb
+moviepy
+imageio
