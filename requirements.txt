@@ -13,7 +13,7 @@ animalai @ git+https://github.com/Kinds-of-Intelligence-CFI/animal-ai.git@cea603
 # Mainly: Support for Gym 0.26.2 / Gymnasium APIs is needed.
 # For the sake of being explicit, pin the specific Gym version that is used 
 # in this port and the Unity ml-agents package.
-dreamerv3 @ git+https://github.com/Kinds-of-Intelligence-CFI/dreamerv3-compat.git#egg=dreamerv3
+dreamerv3 @ git+https://github.com/Kinds-of-Intelligence-CFI/dreamerv3-compat.git@85be05ba0a17ff26feb2f726fa8c476444e5609e#egg=dreamerv3
 gym==0.26.2
 
 
