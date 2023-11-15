@@ -1,4 +1,3 @@
-import os
 import random
 import shlex
 import dataclasses
@@ -16,9 +15,7 @@ from dreamerv3 import embodied
 from dreamerv3.embodied.envs import from_gym
 
 # Make sure this is above the import of AnimalAIEnvironment
-os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 logging.basicConfig(  # noqa
-    # format='[%(asctime)s] [%(levelname)-8s] [%(pathname)s] %(message)s',
     format="[%(asctime)s] [%(levelname)-8s] [%(module)s] %(message)s",
     level=logging.INFO,
 )
@@ -141,8 +138,8 @@ def main(task_config, env_path, args):
     args = embodied.Config(
         **dreamer_config.run,
         logdir=dreamer_config.logdir,
-        batch_steps=dreamer_config.batch_size * dreamer_config.batch_length,
-    )  # type: ignore
+        batch_steps=dreamer_config.batch_size * dreamer_config.batch_length,  # type: ignore
+    )
 
     logging.info("Starting training")
     embodied.run.train(agent, env, replay, logger, args)

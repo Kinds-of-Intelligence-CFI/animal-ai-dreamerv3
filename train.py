@@ -17,7 +17,6 @@ from gym.wrappers.compatibility import EnvCompatibility
 from gym import Env
 
 # Make sure this is above the import of AnimalAIEnvironment
-os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 logging.basicConfig(
     format="[%(asctime)s] [%(levelname)-8s] [%(module)s] %(message)s",
     level=logging.INFO,
@@ -130,8 +129,8 @@ def run(args: Args):
     emb_config = embodied.Config(
         **dreamer_config.run,
         logdir=dreamer_config.logdir,
-        batch_steps=dreamer_config.batch_size * dreamer_config.batch_length,
-    )  # type: ignore
+        batch_steps=dreamer_config.batch_size * dreamer_config.batch_length,  # type: ignore
+    )
     if args.eval_mode:
         logging.info("Starting evaluation")
         embodied.run.eval_only(agent, env, logger, emb_config)

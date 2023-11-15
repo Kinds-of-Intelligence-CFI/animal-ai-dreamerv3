@@ -1,11 +1,9 @@
 import random
-import os
 import dataclasses
 from pathlib import Path
 from typing import Optional
 
 # Make sure this is above the import of AnimalAIEnvironment
-os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 from animalai.envs.environment import AnimalAIEnvironment  # noqa: E402
 
 

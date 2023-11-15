@@ -54,8 +54,8 @@ def main():
     args = embodied.Config(
         **config.run,
         logdir=config.logdir,
-        batch_steps=config.batch_size * config.batch_length,
-    )  # type: ignore
+        batch_steps=config.batch_size * config.batch_length,  # type: ignore
+    )
     embodied.run.train(agent, env, replay, logger, args)
     # embodied.run.eval_only(agent, env, logger, args)
 
