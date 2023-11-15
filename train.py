@@ -3,7 +3,7 @@ import random
 import shutil
 import shlex
 import argparse
-from typing import Optional, Union, Any
+from typing import Optional, Union
 from pathlib import Path
 from datetime import datetime
 from dataclasses import dataclass
@@ -47,6 +47,12 @@ def main():
         "--eval-mode",
         action="store_true",
         help="Run in evaluation mode. Make sure to also load a checkpoint.",
+    )
+    parser.add_argument(
+        "--wandb",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Log to Weights & Biases.",
     )
     parser.add_argument(
         "--from-checkpoint",
@@ -162,24 +168,22 @@ def get_dreamer_config(
     )
     config = embodied.Flags(config).parse(shlex.split(dreamer_args))
 
+    # Configure
     step = embodied.Counter()
-
-    logger = embodied.Logger(
-        step,
-        [
-            embodied.logger.TerminalOutput(),
-            embodied.logger.JSONLOutput(logdir, "metrics.jsonl"),
-            embodied.logger.WandBOutput(
-                wandb_init_kwargs={
-                    "project": "dreamerv3-animalai",
-                    "name": logdir.name,
-                    "config": dict(config),
-                }
-            ),
-            # embodied.logger.TensorBoardOutput(logdir),
-            # embodied.logger.MLFlowOutput(logdir.name),
-        ],
-    )
+    loggers = [
+        embodied.logger.TerminalOutput(),
+        embodied.logger.JSONLOutput(logdir, "metrics.jsonl"),
+    ]
+    if config.wandb:
+        wandblogger = embodied.logger.WandBOutput(
+            wandb_init_kwargs={
+                "project": "dreamerv3-animalai",
+                "name": logdir.name,
+                "config": dict(config),
+            }
+        )
+        loggers.append(wandblogger)
+    logger = embodied.Logger(step, loggers)
 
     return config, step, logger
 
