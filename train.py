@@ -1,30 +1,27 @@
 import os
-
-# Make sure this is above the import of AnimalAIEnvironment
-os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"  # noqa
-
-from typing import *
+import logging
 import random
 import shutil
 import shlex
 import argparse
+from typing import Optional, Union
 from pathlib import Path
 from datetime import datetime
 from dataclasses import dataclass
-
-import logging
-
-logging.basicConfig(  # noqa
-    format="[%(asctime)s] [%(levelname)-8s] [%(module)s] %(message)s",
-    level=logging.INFO,
-)
 
 import dreamerv3
 from dreamerv3 import embodied
 from dreamerv3.embodied.envs import from_gym
 from gym.wrappers.compatibility import EnvCompatibility
-from mlagents_envs.envs.unity_gym_env import UnityToGymWrapper
-from animalai.envs.environment import AnimalAIEnvironment
+
+# Make sure this is above the import of AnimalAIEnvironment
+os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
+logging.basicConfig(
+    format="[%(asctime)s] [%(levelname)-8s] [%(module)s] %(message)s",
+    level=logging.INFO,
+)
+from mlagents_envs.envs.unity_gym_env import UnityToGymWrapper  # noqa: E402
+from animalai.envs.environment import AnimalAIEnvironment  # noqa: E402
 
 
 @dataclass
@@ -87,7 +84,7 @@ def run(args: Args):
     )
     dreamer_config.save(logdir / "dreamer_config.yaml")
 
-    logging.info(f"Creating AAI Dreamer Environment")
+    logging.info("Creating AAI Dreamer Environment")
     env = get_aai_env(task_path, args.env, dreamer_config)
 
     logging.info("Creating DreamerV3 Agent")

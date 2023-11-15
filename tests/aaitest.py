@@ -1,13 +1,12 @@
-import sys
 import random
 import os
 import dataclasses
 from pathlib import Path
-from typing import *
+from typing import Optional
 
-os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"  # noqa
-
-from animalai.envs.environment import AnimalAIEnvironment
+# Make sure this is above the import of AnimalAIEnvironment
+os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
+from animalai.envs.environment import AnimalAIEnvironment  # noqa: E402
 
 
 def load_config_and_play(configuration_file: str, env_path: str) -> None:

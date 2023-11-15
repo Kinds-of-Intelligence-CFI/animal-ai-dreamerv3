@@ -1,36 +1,30 @@
 import os
-from typing import Any
-
-from gym.core import Env
-
-# Make sure this is above the import of AnimalAIEnvironment
-os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"  # noqa
-
-from pathlib import Path
-from typing import *
+import random
 import shlex
 import dataclasses
 import logging
+from pathlib import Path
+from typing import Optional, Union, Any
 from datetime import datetime
-
-logging.basicConfig(  # noqa
-    # format='[%(asctime)s] [%(levelname)-8s] [%(pathname)s] %(message)s',
-    format="[%(asctime)s] [%(levelname)-8s] [%(module)s] %(message)s",
-    level=logging.INFO,
-)
-
-import random
 
 import gym
 import gym.spaces
 import gym.wrappers.compatibility
+from gym.core import Env
 
 import dreamerv3
 from dreamerv3 import embodied
 from dreamerv3.embodied.envs import from_gym
 
-from mlagents_envs.envs.unity_gym_env import UnityToGymWrapper
-from animalai.envs.environment import AnimalAIEnvironment
+# Make sure this is above the import of AnimalAIEnvironment
+os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
+logging.basicConfig(  # noqa
+    # format='[%(asctime)s] [%(levelname)-8s] [%(pathname)s] %(message)s',
+    format="[%(asctime)s] [%(levelname)-8s] [%(module)s] %(message)s",
+    level=logging.INFO,
+)
+from mlagents_envs.envs.unity_gym_env import UnityToGymWrapper  # noqa: E402
+from animalai.envs.environment import AnimalAIEnvironment  # noqa: E402
 
 
 @dataclasses.dataclass
@@ -217,7 +211,7 @@ def main(task_config, env_path, args):
 
     logging.info("Creating DreamerV3 config")
     dreamer_config, step, logger, logdir = get_dreamer_config(logdir, args)
-    logging.info(f"Creating AAI Dreamer Environment")
+    logging.info("Creating AAI Dreamer Environment")
     env = aai_env(task_config, env_path, dreamer_config, logdir)
 
     # Add stepwise CSV logger # TODO: Move away to train
