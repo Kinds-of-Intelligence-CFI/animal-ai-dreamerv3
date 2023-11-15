@@ -29,11 +29,13 @@ from animalai.envs.environment import AnimalAIEnvironment  # noqa: E402
 class Args:
     task: Path
     env: Path
+    size: str
     eval_mode: bool
     wandb: bool
     from_checkpoint: Optional[Path]
     logdir: Optional[Path]
     dreamer_args: str
+    debug: bool
 
 
 def main():
@@ -50,6 +52,13 @@ def main():
         type=Path,
         required=True,
         help="Path to the AnimalAI executable.",
+    )
+    parser.add_argument(
+        "--size",
+        type=str,
+        default="medium",
+        choices=["small", "medium", "large", "xlarge"],
+        help="Size of the DreamerV3 agent.",
     )
     parser.add_argument(
         "--eval-mode",
@@ -77,6 +86,12 @@ def main():
         type=str,
         default="",
         help="Extra args to pass to dreamerv3.",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        default=False,
+        help="Run in debug mode.",
     )
 
     # Parse and start
@@ -106,6 +121,7 @@ def run(args: Args):
         logdir = args.logdir
     else:
         runtype = "eval" if args.eval_mode else "training"
+        runtype = "debug" if args.debug else runtype
         logdir = Path("./logdir/") / f"{runtype}-{date}-{task_name}"
     logdir.mkdir(parents=True)
     (logdir / "log.txt").touch()
@@ -120,7 +136,7 @@ def run(args: Args):
 
     # Dreamer and AAI setup
     logging.info("Creating DreamerV3 and AAI Environment")
-    agent_config = Glue.get_config(logdir, args.dreamer_args, args.from_checkpoint)  # fmt: skip
+    agent_config = Glue.get_config(logdir, args.size, args.dreamer_args, args.from_checkpoint, args.debug)  # fmt: skip
     agent_config.save(logdir / "dreamer_config.yaml")
     logger, step = Glue.get_loggers(logdir, agent_config, args.wandb)
     env = Glue.get_env(task_path, args.env, agent_config)
@@ -144,31 +160,28 @@ class Glue:
     @staticmethod
     def get_config(
         logdir: Path,
+        size: str,
         dreamer_args: str = "",
         from_checkpoint: Optional[Path] = None,
+        debug: bool = False,
     ) -> embodied.Config:
         # See configs.yaml for all options.
         config = embodied.Config(dreamerv3.configs["defaults"])
-        config = config.update(dreamerv3.configs["xlarge"])
-        config = config.update(
-            {
+        config = config.update(dreamerv3.configs[size])  # E.g. medium or xlarge
+        config = config.update({
                 "logdir": logdir,
                 "run.train_ratio": 64,  # Same as dmlab
-                "run.log_every": 60,  # Seconds
+                "run.log_every": 60,  # seconds
                 "batch_size": 16,
-                "jax.prealloc": True,  # We have enough memory to allow focusing on speed.
+                "jax.prealloc": True,
                 "encoder.mlp_keys": "$^",
                 "decoder.mlp_keys": "$^",
                 "encoder.cnn_keys": "image",
-                "decoder.cnn_keys": "image",
                 # 'jax.platform': 'cpu',
-            }
-        )
-        config.update(
-            {
-                "run.from_checkpoint": from_checkpoint or "",
-            }
-        )
+                "decoder.cnn_keys": "image"
+        })  # fmt: skip
+        config.update({"run.from_checkpoint": from_checkpoint or ""})
+        config.update(dreamerv3.configs["debug"] if debug else {})
         config = embodied.Flags(config).parse(shlex.split(dreamer_args))
         return config
 

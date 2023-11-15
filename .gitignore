@@ -1,17 +1,11 @@
-# Add log files, except checkpoints, replay info, and tf logs
+# Ignore replay buffers, checkpoints, and TF logs (but log the rest)
 logdir/**/replay
 logdir/**/checkpoint.ckpt*
 logdir/**/events.out.tfevents.*
 
-# Ignore integration test logs
+# Ignore integration test and debug logs
 logdir/**/integration-test-*/
-
-# # Ignore all log files except logs and metrics small enough to push to GH
-# logdir/**/*.* 
-# !logdir/**/training-*/metrics.jsonl 
-# !logdir/**/training-*/*.yml
-# !logdir/**/training-*/*.yaml
-# !logdir/**/training-*/log.txt
+logdir/**/debug-*/
 
 # Ignore private configs
 aai/configs-private/*

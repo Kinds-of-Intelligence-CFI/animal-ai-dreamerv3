@@ -28,6 +28,9 @@ python train.py --task aai/configs/sanityGreenAndYellow.yml --env aai/env3.1.3/A
 
 Adapt the `train.py` (and everything else) to your liking.
 
+Many things can be configured using flags and dreamer config options.
+For the latter, see [configs.yml](https://github.com/Kinds-of-Intelligence-CFI/dreamerv3-compat/blob/main/dreamerv3/configs.yaml), and specify them like this: `--dreamer-args "--run.steps 1e6"`.
+
 ### Running on headless servers
 
 Use Xvfb, e.g. through `CUDA_VISIBLE_DEVICES=0 xvfb-run -a python train.py --task aai/configs/sanityGreenAndYellow.yml --env aai/env3.1.3/AAI.x86_64`
