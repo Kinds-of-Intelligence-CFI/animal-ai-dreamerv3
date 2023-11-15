@@ -2,7 +2,7 @@
 
 ## Install
 
-1. Install requirements with `pip install --requirement requirements.txt`.
+1. Install requirements with `pip install -r requirements.txt`.
    **Note:** Only Python 3.9 is supported. Make sure that is the installed version on your OS, Docker container or virtual environment.
 2. Download the [AnimalAI environment](https://github.com/Kinds-of-Intelligence-CFI/animal-ai#quick-install-please-see-release-for-latest-version-of-aai-3). The scripts will look for the env at `./aai/env/{AnimalAI,AAI}.{x86_64,exe,app}`, and later at `./aai/env*/{AnimalAI,AAI}.{x86_64,exe,app}` where the lexicographically latest folder will be selected. There is also an `--env` flag to set the path manually.
 3. Run tests to sanity check the installation.
@@ -10,20 +10,18 @@
    - `python tests/jaxtest.py`
      Most important thing to watch for is warnings about no GPUs being detected.
    - `CUDA_VISIBLE_DEVICES=0 python tests/dreamertest.py`
-     You should see various logs being written to the terminal, and eventually messages about which scores the Agent gets for each episode.
+     You should see various logs being written to the terminal, and eventually messages about which scores the Agent gets for each episode. Abort manually if things look good.
    - `python aaitest.py`
-     Spawns a random AnimalAI arena playable through the keyboard. Press C to switch camera.
-   - `CUDA_VISIBLE_DEVICES=0 python tests/integration.py`
-     Test integration of DreamerV3 and AnimalAI. You should see the same things pass as with `dreamertest.py`
-
-     We set only the 0'th (i.e. the first) GPU visible because DreamerV3 does not explicitly support multi GPU and we don't want to hog more resources than necessary. This is of course not needed if there is only 1 GPU available.
+     Spawns a random AnimalAI arena playable through the keyboard. Press C to switch camera. Abort manually if things look good.
+   - `CUDA_VISIBLE_DEVICES=0 ./tests/integration.sh`
+     Test integration of DreamerV3 and AnimalAI, by starting a small training run in debug mode. Abort manually if things look good.
 
 ## Usage
 
 Example:
 
 ```shell
-python train.py --task aai/configs/sanityGreenAndYellow.yml --env aai/env3.1.3/AAI.x86_64
+python train.py --task aai/configs/sanityGreenAndYellow.yml
 ```
 
 Adapt the `train.py` (and everything else) to your liking.
@@ -43,8 +41,7 @@ We provide a Docker image that installs:
 
 - NVIDIA GPU utilities (from the base image)
 - Base utilities (e.g. ffmpeg for logging DreamerV3 gifs)
-- an X server, Xvfb, and other graphical tools so AnimalaI's Unity can render to something
-- Miniconda, and the conda environment specified in this repository.
+- an X server, Xvfb, and other graphical tools so AnimalaI's Unity can render to something.
 - All python dependencies from requirements.txt.
 
 The image is published at [woutschellaert/dreamerv3-animalai
@@ -66,7 +63,7 @@ $ docker run -it --rm \
   woutschellaert/dreamerv3-animalai
 ```
 
-which gives an interactive shell. Be sure to replace `$(pwd)` with something that works on your system, or just use an absolute path. The `--gpu` flag is needed to pass through host GPUs to the container, but there are some requirements (documented [here](https://docs.docker.com/config/containers/resource_constraints/#gpu)). We recommend testing with Dreamer in CPU mode first with the integration test `--cpu` flag.
+which gives an interactive shell. Be sure to replace `$(pwd)` with something that works on your system (if not running Linux), or just use an absolute path. The `--gpu` flag is needed to pass through host GPUs to the container, but there are some requirements (documented [here](https://docs.docker.com/config/containers/resource_constraints/#gpu)). Test on CPU by adding the flag `--dreamer-args "--jax.platform cpu"` to `./tests/integration-docker.sh`.
 
 You can also execute commands directly:
 

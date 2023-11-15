@@ -1,1 +1,2 @@
-xvfb-run -a python tests/integration.py
+# Start training a small model on an empty (rewardless) environment.
+xvfb-run -a python train.py --task empty --size small --no-wandb --debug

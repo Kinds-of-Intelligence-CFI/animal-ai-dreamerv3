@@ -50,7 +50,7 @@ def main():
     parser.add_argument(
         "--env",
         type=Path,
-        required=True,
+        default=Path("auto"),
         help="Path to the AnimalAI executable.",
     )
     parser.add_argument(
