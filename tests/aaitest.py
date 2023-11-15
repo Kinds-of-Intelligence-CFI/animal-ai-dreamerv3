@@ -35,6 +35,42 @@ def load_config_and_play(configuration_file: str, env_path: str) -> None:
         environment.close()
 
 
+def find_env_path(base: Path) -> Path:
+    """
+    Look for the latest version of the AAI.
+    """
+    error_msg = (
+        "Could not automatically find any AAI environment binaries.\n\n"
+        "We look in $BASE$/env/ for files matching {AAI,AnimalAI}.{x86_64,exe,app}, e.g. AAI.x86_64. "
+        "Afterward, we look in the folders matching '$BASE$/env*/', "
+        " taking the one that is lexicographically last, e.g. '$BASE$/env3.1.3/'.\n\n"
+        "You can also specify the path exactly with the --env argument."
+    ).replace("$BASE$", str(base))
+
+    # Select folder
+    env_folders = sorted(base.glob("env*"))
+    if (base / "env/").exists():
+        env_folders.append(base / "env/")
+    if len(env_folders) == 0:
+        reason = f"Could not find any folders matching {str(base)}/env*/"
+        raise FileNotFoundError(f"{error_msg}\n\nReason: {reason}")
+    env_folder = env_folders[-1]
+
+    # Look for binary in selected folder
+    # We brace expand manually because glob does not support it.
+    binaries = [
+        bin
+        for bin_name in ["AAI", "AnimalAI"]
+        for ext in ["x86_64", "exe", "app"]
+        for bin in env_folder.glob(f"{bin_name}.{ext}")
+    ]
+    if len(binaries) == 0:
+        reason = f"Could not find any AAI binaries in {env_folder}."
+        raise FileNotFoundError(f"{error_msg}\n\nReason: {reason}")
+
+    return binaries[0]
+
+
 @dataclasses.dataclass
 class Args:
     config: Optional[Path]
@@ -63,30 +99,7 @@ if __name__ == "__main__":
     if args.env is not None:
         env_path = args.env
     else:
-        # Look for latest version of AAI
-        error_msg = (
-            "This script will look for the latest version of AAI in the ./aai folder "
-            "by matching ./aai/env*/ where the folder with the "
-            "lexically last value for * is used."
-            "In that folder it will look for {AAI,AnimalAI}.{x86_64,exe,app}."
-            "You also specify the path with the --env argument."
-        )
-        env_folders = sorted(Path("./aai/").glob("env*"))
-        assert (
-            len(env_folders) > 0
-        ), f"Could not find any AAI environments matching ./aai/env*/. \n{error_msg}"
-
-        # We brace expand manually because glob does not support it.
-        env_bins = [
-            bin
-            for bin_name in ["AAI", "AnimalAI"]
-            for ext in ["x86_64", "exe", "app"]
-            for bin in env_folders[-1].glob(f"{bin_name}.{ext}")
-        ]
-        assert (
-            len(env_bins) > 0
-        ), f"Could not find any AAI binaries in {env_folders[-1]}. \n{error_msg}"
-        env_path = env_bins[0]
+        env_path = find_env_path(Path("./aai/"))
 
     print(f"Using environment {env_path}.")
     print(f"Using configuration file {config}.")

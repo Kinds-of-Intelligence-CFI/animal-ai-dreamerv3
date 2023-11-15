@@ -13,7 +13,6 @@ aai/configs-private/*
 
 # Ignore environments
 aai/env*/*
-!aai/env/.gitkeep
 
 # Wandb
 wandb/

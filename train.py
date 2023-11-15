@@ -102,8 +102,6 @@ def main():
 
 def run(args: Args):
     # Validate CLI args
-    assert args.task.exists(), f"Task file not found: {args.task}."
-    assert args.env.exists(), f"AAI executable file not found: {args.env}."
     if args.eval_mode:
         assert args.from_checkpoint, "Must provide a checkpoint to evaluate from."
     if args.from_checkpoint:
@@ -112,34 +110,54 @@ def run(args: Args):
         assert ckpt_exists, f"Checkpoint not found: {args.from_checkpoint}."
         assert ckpt_is_file, f"Checkpoint must be a file but is not: {args.from_checkpoint}."  # fmt: skip
 
-    task_path = args.task
-    task_name = Path(args.task).stem
-
-    # Configure logging
+    # Make logdir
     date = datetime.now().strftime("%Y_%m_%d_%H_%M")
     if args.logdir is not None:
         logdir = args.logdir
     else:
+        task_name = Path(args.task).stem
         runtype = "eval" if args.eval_mode else "training"
         runtype = "debug" if args.debug else runtype
         logdir = Path("./logdir/") / f"{runtype}-{date}-{task_name}"
     logdir.mkdir(parents=True)
+
+    # Set up Python logging
     (logdir / "log.txt").touch()
     handler = logging.FileHandler(logdir / "log.txt")
     handler.setLevel(logging.INFO)
     format = "[%(asctime)s] [%(levelname)-8s] [%(module)s] %(message)s"
     handler.setFormatter(logging.Formatter(format))
     logging.getLogger().addHandler(handler)
-    shutil.copy(task_path, logdir / task_path.name)  # For reference
 
+    # Configure task
+    if str(args.task) == "empty":
+        task_path = None  # Will spawn an empty Arena
+        logging.warning("Using an empty Arena.")
+    else:
+        assert args.task.exists(), f"Task file not found: {args.task}."
+        task_path = args.task
+
+    # Configure environment binary
+    if str(args.env) == "auto":
+        env_path = find_env_path(Path("./aai/"))
+    else:
+        assert args.env.exists(), f"AAI executable file not found: {args.env}."
+        env_path = args.env
+    logging.info(f"Using AAI executable file: {env_path}")
+
+    # Log some specific stuff for reference
     logging.info(f"CLI Args: {args}")
+    if task_path:
+        shutil.copy(task_path, logdir / task_path.name)
+    else:
+        (logdir / "empty_task.yaml").touch()
 
     # Dreamer and AAI setup
     logging.info("Creating DreamerV3 and AAI Environment")
     agent_config = Glue.get_config(logdir, args.size, args.dreamer_args, args.from_checkpoint, args.debug)  # fmt: skip
     agent_config.save(logdir / "dreamer_config.yaml")
     logger, step = Glue.get_loggers(logdir, agent_config, args.wandb)
-    env = Glue.get_env(task_path, args.env, agent_config)
+    env = Glue.get_env(task_path, env_path, agent_config)
     agent, replay, run_args = Glue.get_agent(env, step, agent_config, logdir)
 
     # Run the agent
@@ -229,7 +247,7 @@ class Glue:
 
     @staticmethod
     def get_env(
-        task_path: Union[Path, str],
+        task_path: Optional[Union[Path, str]],
         env_path: Union[Path, str],
         agent_config: embodied.Config,
     ):
@@ -240,7 +258,7 @@ class Glue:
         aai_env = AnimalAIEnvironment(
             file_name=str(env_path),
             base_port=port,
-            arenas_configurations=str(task_path),
+            arenas_configurations=str(task_path) if task_path is not None else "",
             # Set pixels to 64x64 cause it has to be power of 2 for dreamerv3
             resolution=64,  # same size as Minecraft in DreamerV3
         )
@@ -285,6 +303,42 @@ class MultiObsWrapper(gym.ObservationWrapper):  # type: ignore
     def observation(self, observation):
         image, extra = observation
         return {"image": image, "extra": extra}
+
+
+def find_env_path(base: Path) -> Path:
+    """
+    Look for the latest version of the AAI.
+    """
+    error_msg = (
+        "Could not automatically find any AAI environment binaries.\n\n"
+        "We look in $BASE$/env/ for files matching {AAI,AnimalAI}.{x86_64,exe,app}, e.g. AAI.x86_64. "
+        "Afterward, we look in the folders matching '$BASE$/env*/', "
+        " taking the one that is lexicographically last, e.g. '$BASE$/env3.1.3/'.\n\n"
+        "You can also specify the path exactly with the --env argument."
+    ).replace("$BASE$", str(base))
+
+    # Select folder
+    env_folders = sorted(base.glob("env*"))
+    if (base / "env/").exists():
+        env_folders.append(base / "env/")
+    if len(env_folders) == 0:
+        reason = f"Could not find any folders matching {str(base)}/env*/"
+        raise FileNotFoundError(f"{error_msg}\n\nReason: {reason}")
+    env_folder = env_folders[-1]
+
+    # Look for binary in selected folder
+    # We brace expand manually because glob does not support it.
+    binaries = [
+        bin
+        for bin_name in ["AAI", "AnimalAI"]
+        for ext in ["x86_64", "exe", "app"]
+        for bin in env_folder.glob(f"{bin_name}.{ext}")
+    ]
+    if len(binaries) == 0:
+        reason = f"Could not find any AAI binaries in {env_folder}."
+        raise FileNotFoundError(f"{error_msg}\n\nReason: {reason}")
+
+    return binaries[0]
 
 
 if __name__ == "__main__":
