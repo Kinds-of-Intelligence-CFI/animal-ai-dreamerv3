@@ -195,7 +195,6 @@ class Glue:
                 "encoder.mlp_keys": "$^",
                 "decoder.mlp_keys": "$^",
                 "encoder.cnn_keys": "image",
-                # 'jax.platform': 'cpu',
                 "decoder.cnn_keys": "image"
         })  # fmt: skip
         config.update({"run.from_checkpoint": from_checkpoint or ""})
@@ -254,15 +253,16 @@ class Glue:
         # Use a random port to avoid problems if a previous version exits slowly
         port = 5005 + random.randint(0, 1000)
 
-        logging.info("Initializing AAI environment")
+        logging.debug("Initializing AAI environment")
         aai_env = AnimalAIEnvironment(
             file_name=str(env_path),
             base_port=port,
             arenas_configurations=str(task_path) if task_path is not None else "",
             # Set pixels to 64x64 cause it has to be power of 2 for dreamerv3
             resolution=64,  # same size as Minecraft in DreamerV3
+            no_graphics=False,  # Without graphics we get gray only observations.
         )
-        logging.info("Wrapping AAI environment")
+        logging.debug("Wrapping AAI environment")
         env = UnityToGymWrapper(
             aai_env,
             uint8_visual=True,
