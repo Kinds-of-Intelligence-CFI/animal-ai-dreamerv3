@@ -1,6 +1,6 @@
 # DreamerV3 for the AnimalAI Environment
 
-## Usage
+## Install
 
 1. Install requirements with `pip install --requirement requirements.txt`.
    **Note:** Only Python 3.9 is supported. Make sure that is the installed version on your OS, Docker container or virtual environment.
@@ -18,7 +18,15 @@
 
      We set only the 0'th (i.e. the first) GPU visible because DreamerV3 does not explicitly support multi GPU and we don't want to hog more resources than necessary. This is of course not needed if there is only 1 GPU available.
 
-4. Adapt the `train.py` script to your training needs, e.g. disabling wandb logging.
+## Usage
+
+Example:
+
+```shell
+python train.py --task aai/configs/sanityGreenAndYellow.yml --env aai/env3.1.3/AAI.x86_64
+```
+
+Adapt the `train.py` (and everything else) to your liking.
 
 ### Running on headless servers
 
