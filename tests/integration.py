@@ -4,13 +4,12 @@ import shlex
 import dataclasses
 import logging
 from pathlib import Path
-from typing import Optional, Union, Any
+from typing import Optional, Union
 from datetime import datetime
 
 import gym
 import gym.spaces
 import gym.wrappers.compatibility
-from gym.core import Env
 
 import dreamerv3
 from dreamerv3 import embodied
@@ -81,30 +80,6 @@ def get_dreamer_config(run_logdir, args: Args):
     return config, step, logger, logdir
 
 
-class MultiObsWrapper(gym.ObservationWrapper):  # type: ignore
-    """
-    Go from tuple to dict observation space.
-
-    <https://www.gymlibrary.dev/api/wrappers/#observationwrapper>
-    """
-
-    def __init__(self, env: Env):
-        super().__init__(env)
-        tuple_obs_space: gym.spaces.Tuple = self.observation_space  # type: ignore
-        self.observation_space = gym.spaces.Dict(
-            {
-                "image": tuple_obs_space[0],
-                "extra": tuple_obs_space[
-                    1
-                ],  # Health, velocity (x, y, z), and global position (x, y, z)
-            }
-        )
-
-    def observation(self, observation):
-        image, extra = observation
-        return {"image": image, "extra": extra}
-
-
 def aai_env(
     task_path: Union[Path, str], env_path: Union[Path, str], dreamer_config, logdir
 ):
@@ -127,18 +102,17 @@ def aai_env(
     env = UnityToGymWrapper(
         aai_env,
         uint8_visual=True,
-        allow_multiple_obs=True,  # Also provide health, velocity (x, y, z), and global position (x, y, z)
+        # allow_multiple_obs=True,  # Also provide health, velocity (x, y, z), and global position (x, y, z)
         flatten_branched=True,
     )  # Necessary. Dreamerv3 doesn't support MultiDiscrete action space.
 
     logging.info("Applying EnvCompatibility")
     env = gym.wrappers.compatibility.EnvCompatibility(env, render_mode="rgb_array")  # type: ignore
-    env = MultiObsWrapper(env)
     logging.info(f"Using observation space {env.observation_space}")
     logging.info(f"Using action space {env.action_space}")
 
     logging.info("Applying DreamerV3 FromGym")
-    env = from_gym.FromGym(env)
+    env = from_gym.FromGym(env, obs_key="image")
     logging.info(f"Using observation space {env.obs_space}")
     logging.info(f"Using action space {env.act_space}")
 
@@ -150,61 +124,6 @@ def aai_env(
     return env
 
 
-class StepwiseCSVLogger(embodied.BatchEnv):
-    """
-    Logs the environment after every step to a CSV file.
-
-    <https://stackoverflow.com/questions/1443129/completely-wrap-an-object-in-python>
-    """
-
-    def __init__(
-        self, env: embodied.BatchEnv, logdir: Path, episode: int = 1, step: int = 1
-    ):
-        self.__env = env
-        self.__logdir = logdir / "episodes"
-        self.__logdir.mkdir(parents=True, exist_ok=False)
-
-        self.__episode = episode
-        self.__stepnum = step
-
-        self.__open_episode_log()
-
-    def __getattr__(self, __name) -> Any:
-        return getattr(self.__env, __name)
-
-    def __open_episode_log(self):
-        path = self.__logdir / f"episode_{self.__episode}.csv"
-        path.touch()
-        self.__csv_file = path.open("w")
-        self.__csv_file.write(
-            "episode, step, reward, done, health, vx, vy, vz, px, py, pz\n"
-        )
-
-    def step(self, action):
-        step_result = self.__env.step(
-            action
-        )  # We still need to unwrap the BatchEnv output
-        extra = step_result["extra"][0]  # This is the info we care about
-        reward = step_result["reward"][0]
-        done = step_result["is_last"][0]
-
-        log_extra = ", ".join([str(x) for x in extra])
-        self.__csv_file.write(
-            f"{self.__episode}, {self.__stepnum}, {reward}, {done}, {log_extra}\n"
-        )
-
-        self.__stepnum += 1
-        if done:
-            self.__episode += 1
-            self.__open_episode_log()
-
-        return step_result
-
-    def close(self):
-        self.__csv_file.close()
-        return self.__env.close()
-
-
 def main(task_config, env_path, args):
     date = datetime.now().strftime("%Y_%m_%d_%H_%M")
     logdir = Path("./logdir/") / f"integration-test-{date}"
@@ -213,9 +132,6 @@ def main(task_config, env_path, args):
     dreamer_config, step, logger, logdir = get_dreamer_config(logdir, args)
     logging.info("Creating AAI Dreamer Environment")
     env = aai_env(task_config, env_path, dreamer_config, logdir)
-
-    # Add stepwise CSV logger # TODO: Move away to train
-    # env = StepwiseCSVLogger(env, Path(str(logdir)))
 
     logging.info("Creating DreamerV3 Agent")
     agent = dreamerv3.Agent(env.obs_space, env.act_space, step, dreamer_config)

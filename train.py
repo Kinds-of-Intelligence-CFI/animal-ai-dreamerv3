@@ -1,18 +1,20 @@
-import os
 import logging
 import random
 import shutil
 import shlex
 import argparse
-from typing import Optional, Union
+from typing import Optional, Union, Any
 from pathlib import Path
 from datetime import datetime
 from dataclasses import dataclass
 
+import gym
+import gym.spaces
 import dreamerv3
 from dreamerv3 import embodied
 from dreamerv3.embodied.envs import from_gym
 from gym.wrappers.compatibility import EnvCompatibility
+from gym import Env
 
 # Make sure this is above the import of AnimalAIEnvironment
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
@@ -32,6 +34,35 @@ class Args:
     from_checkpoint: Optional[Path]
     logdir: Optional[Path]
     dreamer_args: str
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--task", type=Path, required=True, help="Path to the task file."
+    )
+    parser.add_argument(
+        "--env", type=Path, required=True, help="Path to the AnimalAI executable."
+    )
+    parser.add_argument(
+        "--eval-mode",
+        action="store_true",
+        help="Run in evaluation mode. Make sure to also load a checkpoint.",
+    )
+    parser.add_argument(
+        "--from-checkpoint",
+        type=Path,
+        help="Load a checkpoint to continue training or evaluate from.",
+    )
+    parser.add_argument("--logdir", type=Path, help="Directory to save logs to.")
+    parser.add_argument(
+        "--dreamer-args", type=str, default="", help="Extra args to pass to dreamerv3."
+    )
+    args_raw = parser.parse_args()
+
+    args = Args(**vars(args_raw))
+
+    run(args)
 
 
 def run(args: Args):
@@ -86,6 +117,9 @@ def run(args: Args):
 
     logging.info("Creating AAI Dreamer Environment")
     env = get_aai_env(task_path, args.env, dreamer_config)
+
+    # Add stepwise CSV logger
+    # env = StepwiseCSVLogger(env, Path(str(logdir)))
 
     logging.info("Creating DreamerV3 Agent")
     agent = dreamerv3.Agent(env.obs_space, env.act_space, step, dreamer_config)
@@ -172,49 +206,101 @@ def get_aai_env(
     env = UnityToGymWrapper(
         aai_env,
         uint8_visual=True,
-        # allow_multiple_obs=True, # This crashes somewhere in one of the wrappers.
-        flatten_branched=True,
-    )  # Necessary. Dreamerv3 doesn't support MultiDiscrete action space.
+        allow_multiple_obs=True,  # Also provide health, velocity (x, y, z), and global position (x, y, z)
+        flatten_branched=True,  # Necessary. Dreamerv3 doesn't support MultiDiscrete action space.
+    )
     env = EnvCompatibility(env, render_mode="rgb_array")  # type: ignore
-    env = from_gym.FromGym(env, obs_key="image")
+    env = MultiObsWrapper(env)
+    env = from_gym.FromGym(env)
     logging.info(f"Using observation space {env.obs_space}")
     logging.info(f"Using action space {env.act_space}")
     env = dreamerv3.wrap_env(env, dreamer_config)
-    # env = MonkeyPatchLen(env)  # Dreamerv3 expects env to have a __len__ method.
     env = embodied.BatchEnv([env], parallel=False)
 
     return env
 
 
-class MonkeyPatchLen(embodied.core.base.Wrapper):
-    def __len__(self):
-        return 1
+# ----------- Utils
+
+
+class MultiObsWrapper(gym.ObservationWrapper):  # type: ignore
+    """
+    Go from tuple to dict observation space.
+
+    <https://www.gymlibrary.dev/api/wrappers/#observationwrapper>
+    """
+
+    def __init__(self, env: Env):
+        super().__init__(env)
+        tuple_obs_space: gym.spaces.Tuple = self.observation_space  # type: ignore
+        self.observation_space = gym.spaces.Dict(
+            {
+                "image": tuple_obs_space[0],
+                "extra": tuple_obs_space[
+                    1
+                ],  # Health, velocity (x, y, z), and global position (x, y, z)
+            }
+        )
+
+    def observation(self, observation):
+        image, extra = observation
+        return {"image": image, "extra": extra}
+
+
+class StepwiseCSVLogger(embodied.BatchEnv):
+    """
+    Logs the environment after every step to a CSV file.
+
+    <https://stackoverflow.com/questions/1443129/completely-wrap-an-object-in-python>
+    """
+
+    def __init__(
+        self, env: embodied.BatchEnv, logdir: Path, episode: int = 1, step: int = 1
+    ):
+        self.__env = env
+        self.__logdir = logdir / "episodes"
+        self.__logdir.mkdir(parents=True, exist_ok=False)
+
+        self.__episode = episode
+        self.__stepnum = step
+
+        self.__open_episode_log()
+
+    def __getattr__(self, __name) -> Any:
+        return getattr(self.__env, __name)
+
+    def __open_episode_log(self):
+        path = self.__logdir / f"episode_{self.__episode}.csv"
+        path.touch()
+        self.__csv_file = path.open("w")
+        self.__csv_file.write(
+            "episode, step, reward, done, health, vx, vy, vz, px, py, pz\n"
+        )
+
+    def step(self, action):
+        step_result = self.__env.step(
+            action
+        )  # We still need to unwrap the BatchEnv output
+        extra = step_result["extra"][0]  # This is the info we care about
+        reward = step_result["reward"][0]
+        done = step_result["is_last"][0]
+
+        log_extra = ", ".join([str(x) for x in extra])
+        self.__csv_file.write(
+            f"{self.__episode}, {self.__stepnum}, {reward}, {done}, {log_extra}\n"
+        )
+
+        self.__stepnum += 1
+        if done:
+            self.__episode += 1
+            self.__open_episode_log()
+
+        return step_result
+
+    def close(self):
+        self.__csv_file.close()
+        return self.__env.close()
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--task", type=Path, required=True, help="Path to the task file."
-    )
-    parser.add_argument(
-        "--env", type=Path, required=True, help="Path to the AnimalAI executable."
-    )
-    parser.add_argument(
-        "--eval-mode",
-        action="store_true",
-        help="Run in evaluation mode. Make sure to also load a checkpoint.",
-    )
-    parser.add_argument(
-        "--from-checkpoint",
-        type=Path,
-        help="Load a checkpoint to continue training or evaluate from.",
-    )
-    parser.add_argument("--logdir", type=Path, help="Directory to save logs to.")
-    parser.add_argument(
-        "--dreamer-args", type=str, default="", help="Extra args to pass to dreamerv3."
-    )
-    args_raw = parser.parse_args()
-
-    args = Args(**vars(args_raw))
-
-    run(args)
+    main()
