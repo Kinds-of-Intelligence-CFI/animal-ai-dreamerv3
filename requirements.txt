@@ -5,8 +5,7 @@ jax[cuda12_pip]
 
 # Latest tested version of AnimalAI
 # Note: Through its dependency on ml-agents, this implies numpy==1.21.1
-# animalai==3.0.4 # This currently still has too much dependencies specified.
-animalai @ git+https://github.com/Kinds-of-Intelligence-CFI/animal-ai.git@cea60396626ddbf5604d5ddbfb7d3147d078605d#egg=animalai&subdirectory=animalai
+animalai==3.0.5
 
 
 # Use an port of DreamerV3 that is compatible AnimalAI dependencies
