@@ -30,6 +30,9 @@ class Args:
     task: Path
     env: Path
     size: str
+    observe_camera: bool
+    observe_raycast: bool
+    observe_extra: bool
     eval_mode: bool
     wandb: bool
     from_checkpoint: Optional[Path]
@@ -40,6 +43,7 @@ class Args:
 
 def main():
     # CLI Configuration (aligns with Args dataclass)
+    # TODO: Implement --episodes
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--task",
@@ -59,6 +63,25 @@ def main():
         default="medium",
         choices=["small", "medium", "large", "xlarge"],
         help="Size of the DreamerV3 agent.",
+    )
+    parser.add_argument(
+        "--observe-raycast",
+        default=False,
+        action="store_true",
+        help="Whether to let the agent observe the raycast rays.",
+    )
+    parser.add_argument(
+        "--observe-extra",
+        default=False,
+        action="store_true",
+        help="Whether to let the agent observe health, velocity, and global position.",
+    )
+    parser.add_argument(
+        "--disable-camera",
+        dest="observe_camera",
+        default=True,
+        action="store_false",
+        help="Disable camera/pixel observations.",
     )
     parser.add_argument(
         "--eval-mode",
@@ -109,6 +132,8 @@ def run(args: Args):
         ckpt_is_file = args.from_checkpoint.is_file()
         assert ckpt_exists, f"Checkpoint not found: {args.from_checkpoint}."
         assert ckpt_is_file, f"Checkpoint must be a file but is not: {args.from_checkpoint}."  # fmt: skip
+    if not args.observe_camera and not args.observe_raycast:
+        raise ValueError("No observations: camera is disabled and raycasts are not enabled.")  # fmt: skip
 
     # Make logdir
     date = datetime.now().strftime("%Y_%m_%d_%H_%M")
@@ -154,7 +179,16 @@ def run(args: Args):
 
     # Dreamer and AAI setup
     logging.info("Creating DreamerV3 and AAI Environment")
-    agent_config = Glue.get_config(logdir, args.size, args.dreamer_args, args.from_checkpoint, args.debug)  # fmt: skip
+    agent_config = Glue.get_config(
+        logdir,
+        size=args.size,
+        observe_camera=args.observe_camera,
+        observe_raycast=args.observe_raycast,
+        observe_extra=args.observe_extra,
+        dreamer_args=args.dreamer_args,
+        from_checkpoint=args.from_checkpoint,
+        debug=args.debug,
+    )
     agent_config.save(logdir / "dreamer_config.yaml")
     logger, step = Glue.get_loggers(logdir, agent_config, args.wandb)
     env = Glue.get_env(task_path, env_path, agent_config)
@@ -179,6 +213,9 @@ class Glue:
     def get_config(
         logdir: Path,
         size: str,
+        observe_camera: bool = True,
+        observe_raycast: bool = False,
+        observe_extra: bool = False,
         dreamer_args: str = "",
         from_checkpoint: Optional[Path] = None,
         debug: bool = False,
@@ -192,11 +229,24 @@ class Glue:
                 "run.log_every": 60,  # seconds
                 "batch_size": 16,
                 "jax.prealloc": True,
-                "encoder.mlp_keys": "$^",
-                "decoder.mlp_keys": "$^",
-                "encoder.cnn_keys": "image",
-                "decoder.cnn_keys": "image"
         })  # fmt: skip
+
+        # Decide which observations the MLP sees
+        if not observe_raycast and not observe_extra:
+            mlp_obs = "$^"
+        else:
+            keys = []
+            keys += ["raycast"] if observe_raycast else []
+            keys += ["extra"] if observe_extra else []
+            mlp_obs = "(" + "|".join(keys) + ")"
+
+        config = config.update({
+                "encoder.mlp_keys": mlp_obs,
+                "decoder.mlp_keys": mlp_obs,
+                "encoder.cnn_keys": "image" if observe_camera else "$^",
+                "decoder.cnn_keys": "image" if observe_camera else "$^",
+        })  # fmt: skip
+
         config.update({"run.from_checkpoint": from_checkpoint or ""})
         config.update(dreamerv3.configs["debug"] if debug else {})
         config = embodied.Flags(config).parse(shlex.split(dreamer_args))
@@ -260,6 +310,8 @@ class Glue:
             arenas_configurations=str(task_path) if task_path is not None else "",
             # Set pixels to 64x64 cause it has to be power of 2 for dreamerv3
             resolution=64,  # same size as Minecraft in DreamerV3
+            useCamera=True,
+            useRayCasts=True,
             no_graphics=False,  # Without graphics we get gray only observations.
         )
         logging.debug("Wrapping AAI environment")
@@ -270,7 +322,7 @@ class Glue:
             flatten_branched=True,  # Necessary. Dreamerv3 doesn't support MultiDiscrete action space.
         )
         env = EnvCompatibility(env, render_mode="rgb_array")  # type: ignore
-        env = MultiObsWrapper(env)
+        env = AAItoDreamerObservationWrapper(env)
         env = from_gym.FromGym(env)
         logging.info(f"Using observation space {env.obs_space}")
         logging.info(f"Using action space {env.act_space}")
@@ -280,9 +332,10 @@ class Glue:
         return env
 
 
-class MultiObsWrapper(gym.ObservationWrapper):  # type: ignore
+class AAItoDreamerObservationWrapper(gym.ObservationWrapper):  # type: ignore
     """
-    Go from tuple to dict observation space.
+    Go from a tuple to dict observation space,
+    and split the raycast and extra (health, velocity, position) observations.
 
     <https://www.gymlibrary.dev/api/wrappers/#observationwrapper>
     """
@@ -290,19 +343,27 @@ class MultiObsWrapper(gym.ObservationWrapper):  # type: ignore
     def __init__(self, env: Env):
         super().__init__(env)
         tuple_obs_space: gym.spaces.Tuple = self.observation_space  # type: ignore
+
+        # RGB image (dimensions might vary)
+        image = tuple_obs_space[0]
+
+        # Raycasts in a 1D array of 20 entries.
+        mixed: gym.spaces.Box = tuple_obs_space[1]  # type: ignore # Raycast + extra together
+        raycast_size = mixed.shape[0] - 7
+        raycast = gym.spaces.Box(float("-inf"), float("+inf"), shape=(raycast_size,), dtype=float)  # fmt: skip
+
+        # Health, velocity (x, y, z), and global position (x, y, z) in a 1D array of 7 entries.
+        extra = gym.spaces.Box(float("-inf"), float("+inf"), shape=(7,), dtype=float)
+
         self.observation_space = gym.spaces.Dict(
-            {
-                # RGB image
-                "image": tuple_obs_space[0],
-                # Health, velocity (x, y, z), and global position (x, y, z)
-                # in a 1D array of 7 entries.
-                "extra": tuple_obs_space[1],
-            }
+            {"image": image, "raycast": raycast, "extra": extra}
         )
 
     def observation(self, observation):
-        image, extra = observation
-        return {"image": image, "extra": extra}
+        image, mix = observation
+        extra = mix[-7:]
+        raycast = mix[:-7]
+        return {"image": image, "extra": extra, "raycast": raycast}
 
 
 def find_env_path(base: Path) -> Path:
