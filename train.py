@@ -255,7 +255,10 @@ class Glue:
                 "decoder.cnn_keys": "image" if observe_camera else "$^",
         })  # fmt: skip
 
-        config.update({"run.from_checkpoint": from_checkpoint or ""})
+        if from_checkpoint is not None:
+            logging.info(f"Loading checkpoint from {from_checkpoint}")
+            config = config.update({"run.from_checkpoint": from_checkpoint})
+
         config.update(dreamerv3.configs["debug"] if debug else {})
         config = embodied.Flags(config).parse(shlex.split(dreamer_args))
         return config
