@@ -33,6 +33,7 @@ class Args:
     observe_camera: bool
     observe_raycast: bool
     observe_extra: bool
+    n_parallel_envs: int
     eval_mode: bool
     wandb: bool
     from_checkpoint: Optional[Path]
@@ -82,6 +83,12 @@ def main():
         default=True,
         action="store_false",
         help="Disable camera/pixel observations.",
+    )
+    parser.add_argument(
+        "--n-parallel-envs",
+        default=1,
+        type=int,
+        help="Number of parallel environments to run.",
     )
     parser.add_argument(
         "--eval-mode",
@@ -134,6 +141,7 @@ def run(args: Args):
         assert ckpt_is_file, f"Checkpoint must be a file but is not: {args.from_checkpoint}."  # fmt: skip
     if not args.observe_camera and not args.observe_raycast:
         raise ValueError("No observations: camera is disabled and raycasts are not enabled.")  # fmt: skip
+    assert args.n_parallel_envs > 0, "Must have at least one environment."
 
     # Make logdir
     date = datetime.now().strftime("%Y_%m_%d_%H_%M")
@@ -191,7 +199,7 @@ def run(args: Args):
     )
     agent_config.save(logdir / "dreamer_config.yaml")
     logger, step = Glue.get_loggers(logdir, agent_config, args.wandb)
-    env = Glue.get_env(task_path, env_path, agent_config)
+    env = Glue.get_env(task_path, env_path, agent_config, args.n_parallel_envs)
     agent, replay, run_args = Glue.get_agent(env, step, agent_config, logdir)
 
     # Run the agent
@@ -299,36 +307,43 @@ class Glue:
         task_path: Optional[Union[Path, str]],
         env_path: Union[Path, str],
         agent_config: embodied.Config,
+        n_parallel_envs: int = 1,
     ):
         # Use a random port to avoid problems if a previous version exits slowly
         port = 5005 + random.randint(0, 1000)
 
-        logging.debug("Initializing AAI environment")
-        aai_env = AnimalAIEnvironment(
-            file_name=str(env_path),
-            base_port=port,
-            arenas_configurations=str(task_path) if task_path is not None else "",
-            # Set pixels to 64x64 cause it has to be power of 2 for dreamerv3
-            resolution=64,  # same size as Minecraft in DreamerV3
-            useCamera=True,
-            useRayCasts=True,
-            no_graphics=False,  # Without graphics we get gray only observations.
-        )
-        logging.debug("Wrapping AAI environment")
-        env = UnityToGymWrapper(
-            aai_env,
-            uint8_visual=True,
-            allow_multiple_obs=True,  # Also provide health, velocity (x, y, z), and global position (x, y, z)
-            flatten_branched=True,  # Necessary. Dreamerv3 doesn't support MultiDiscrete action space.
-        )
-        env = EnvCompatibility(env, render_mode="rgb_array")  # type: ignore
-        env = AAItoDreamerObservationWrapper(env)
-        env = from_gym.FromGym(env)
-        logging.info(f"Using observation space {env.obs_space}")
-        logging.info(f"Using action space {env.act_space}")
-        env = dreamerv3.wrap_env(env, agent_config)
-        env = embodied.BatchEnv([env], parallel=False)
+        envs = []
+        for idx in range(n_parallel_envs):
+            idx_string = f" {str(idx + 1)}" if n_parallel_envs > 1 else ""
+            logging.debug(f"Initializing AAI environment{idx_string}")
+            aai_env = AnimalAIEnvironment(
+                file_name=str(env_path),
+                base_port=port,
+                arenas_configurations=str(task_path) if task_path is not None else "",
+                worker_id=port + idx,
+                # Set pixels to 64x64 cause it has to be power of 2 for dreamerv3
+                resolution=64,  # same size as Minecraft in DreamerV3
+                useCamera=True,
+                useRayCasts=True,
+                no_graphics=False,  # Without graphics we get gray only observations.
+            )
+            logging.debug(f"Wrapping AAI environment{idx_string}")
+            env = UnityToGymWrapper(
+                aai_env,
+                uint8_visual=True,
+                allow_multiple_obs=True,  # Also provide health, velocity (x, y, z), and global position (x, y, z)
+                flatten_branched=True,  # Necessary. Dreamerv3 doesn't support MultiDiscrete action space.
+            )
+            env = EnvCompatibility(env, render_mode="rgb_array")  # type: ignore
+            env = AAItoDreamerObservationWrapper(env)
+            env = from_gym.FromGym(env)
+            if idx == 0:
+                logging.info(f"Using observation space {env.obs_space}")
+                logging.info(f"Using action space {env.act_space}")
+            env = dreamerv3.wrap_env(env, agent_config)
+            envs.append(env)
 
+        env = embodied.BatchEnv(envs, parallel=False)
         return env
 
 
